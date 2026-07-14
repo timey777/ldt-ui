@@ -1,0 +1,45 @@
+@style {
+    .page-root{width:100%;}
+    .page-banner{width:100%;border-radius:18px;padding:18px;margin-bottom:14px;}
+    .page-home{background-color:#eff6ff;border:1px solid #bfdbfe;}
+    .page-title{font-size:24px;margin-bottom:8px;}
+    .page-copy{font-size:15px;margin-bottom:6px;}
+    .page-actions{margin-top:10px;margin-bottom:10px;}
+    .page-btn-primary{background-color:#2563eb;padding:10px 14px;border-radius:10px;margin-right:10px;}
+    .page-btn-secondary{background-color:#0f172a;padding:10px 14px;border-radius:10px;}
+    .card-grid{width:100%;}
+    .metric-card{width:100%;background-color:#ffffff;border:1px solid #d4dde8;border-radius:14px;padding:14px;margin-bottom:10px;}
+    .metric-label{font-size:12px;margin-bottom:6px;}
+    .metric-value{font-size:20px;margin-bottom:4px;}
+    .metric-copy{font-size:13px;}
+}
+@layout {
+    .page-root{display:flex;flex-direction:column;}
+    .page-banner{display:flex;flex-direction:column;}
+    .page-actions{display:flex;flex-direction:row;}
+    .card-grid{display:flex;flex-direction:column;}
+    .metric-card{display:flex;flex-direction:column;}
+}
+panel:androidPageHomeRoot(class="page-root") {
+    panel:hero(class="page-banner page-home") {
+        text:title(class="page-title", value="Android home page stays inside one Scene shell")
+        text:copy1(class="page-copy", value="The shell, debug log and fullscreen button stay mounted while only the page component is swapped.")
+        text:copy2(class="page-copy", value="This is the same router pattern as examples, adapted to the Android native runtime.")
+        panel:actions(class="page-actions") {
+            button:primary(id="btnHomeToProduct", class="page-btn-primary") { text(value="Go To Product", color="#ffffff") }
+            button:secondary(id="btnHomeToSummary", class="page-btn-secondary") { text(value="Go To Summary", color="#ffffff") }
+        }
+    }
+    panel:grid(class="card-grid") {
+        panel:card1(class="metric-card") {
+            text(class="metric-label", value="Runtime shell")
+            text(class="metric-value", value="Stable")
+            text(class="metric-copy", value="AndroidDslScene now owns one persistent shell and swaps the page subtree only.")
+        }
+        panel:card2(class="metric-card") {
+            text(class="metric-label", value="Platform controls")
+            text(class="metric-value", value="Retained")
+            text(class="metric-copy", value="Fullscreen, clipboard and touch logging stay wired at the Scene level.")
+        }
+    }
+}

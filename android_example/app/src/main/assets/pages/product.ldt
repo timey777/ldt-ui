@@ -1,0 +1,34 @@
+@style {
+    .page-root{width:100%;}
+    .page-banner{width:100%;border-radius:18px;padding:18px;margin-bottom:14px;}
+    .page-product{background-color:#ecfdf5;border:1px solid #a7f3d0;}
+    .page-title{font-size:24px;margin-bottom:8px;}
+    .page-copy{font-size:15px;margin-bottom:6px;}
+    .page-actions{margin-top:10px;margin-bottom:10px;}
+    .page-btn-primary{background-color:#059669;padding:10px 14px;border-radius:10px;margin-right:10px;}
+    .page-btn-secondary{background-color:#0f172a;padding:10px 14px;border-radius:10px;}
+    .ops-list{width:100%;background-color:#ffffff;border:1px solid #d4dde8;border-radius:14px;padding:14px;}
+    .ops-line{font-size:14px;margin-bottom:6px;}
+}
+@layout {
+    .page-root{display:flex;flex-direction:column;}
+    .page-banner{display:flex;flex-direction:column;}
+    .page-actions{display:flex;flex-direction:row;}
+    .ops-list{display:flex;flex-direction:column;}
+}
+panel:androidPageProductRoot(class="page-root") {
+    panel:hero(class="page-banner page-product") {
+        text:title(class="page-title", value="Product page proves component-level route switching")
+        text:copy1(class="page-copy", value="The page subtree is removed by uid before the next page mounts into #pageSlot.")
+        text:copy2(class="page-copy", value="That prevents vertical accumulation and keeps the Android shell layout stable.")
+        panel:actions(class="page-actions") {
+            button:primary(id="btnProductToHome", class="page-btn-primary") { text(value="Return Home", color="#ffffff") }
+            button:secondary(id="btnProductToSummary", class="page-btn-secondary") { text(value="Go To Summary", color="#ffffff") }
+        }
+    }
+    panel:ops(class="ops-list") {
+        text(class="ops-line", value="Checklist: scene-level handlers are registered once and reused.")
+        text(class="ops-line", value="Checklist: page root ids remain route-specific for deterministic cleanup.")
+        text(class="ops-line", value="Checklist: surface recreation can remount the current page after reload().")
+    }
+}

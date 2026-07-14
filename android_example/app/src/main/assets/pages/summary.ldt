@@ -1,0 +1,45 @@
+@style {
+    .page-root{width:100%;}
+    .page-banner{width:100%;border-radius:18px;padding:18px;margin-bottom:14px;}
+    .page-summary{background-color:#fff7ed;border:1px solid #fed7aa;}
+    .page-title{font-size:24px;margin-bottom:8px;}
+    .page-copy{font-size:15px;margin-bottom:6px;}
+    .page-actions{margin-top:10px;margin-bottom:10px;}
+    .page-btn-primary{background-color:#ea580c;padding:10px 14px;border-radius:10px;margin-right:10px;}
+    .page-btn-secondary{background-color:#0f172a;padding:10px 14px;border-radius:10px;}
+    .card-grid{width:100%;}
+    .metric-card{width:100%;background-color:#ffffff;border:1px solid #d4dde8;border-radius:14px;padding:14px;margin-bottom:10px;}
+    .metric-label{font-size:12px;margin-bottom:6px;}
+    .metric-value{font-size:20px;margin-bottom:4px;}
+    .metric-copy{font-size:13px;}
+}
+@layout {
+    .page-root{display:flex;flex-direction:column;}
+    .page-banner{display:flex;flex-direction:column;}
+    .page-actions{display:flex;flex-direction:row;}
+    .card-grid{display:flex;flex-direction:column;}
+    .metric-card{display:flex;flex-direction:column;}
+}
+panel:androidPageSummaryRoot(class="page-root") {
+    panel:hero(class="page-banner page-summary") {
+        text:title(class="page-title", value="Summary page closes the Android router loop")
+        text:copy1(class="page-copy", value="This matches the desktop examples pattern: one shell Scene, multiple swappable page components.")
+        text:copy2(class="page-copy", value="The same route host can now be promoted into a shared abstraction later.")
+        panel:actions(class="page-actions") {
+            button:primary(id="btnSummaryToHome", class="page-btn-primary") { text(value="Return Home", color="#ffffff") }
+            button:secondary(id="btnSummaryToProduct", class="page-btn-secondary") { text(value="Back To Product", color="#ffffff") }
+        }
+    }
+    panel:grid(class="card-grid") {
+        panel:card1(class="metric-card") {
+            text(class="metric-label", value="Shell")
+            text(class="metric-value", value="Persistent")
+            text(class="metric-copy", value="Viewport, input, debug log and fullscreen controls are not rebuilt per route.")
+        }
+        panel:card2(class="metric-card") {
+            text(class="metric-label", value="Pages")
+            text(class="metric-value", value="Composable")
+            text(class="metric-copy", value="Each route is just a local component subtree mounted under the slot.")
+        }
+    }
+}
