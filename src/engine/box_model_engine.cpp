@@ -155,10 +155,10 @@ void BoxModelEngine::measureContent(ldt::ResolvedNode* node, float& requestedW, 
 		if (text.empty()) {
 			if (auto attr = node->astNode->getAttribute("placeholder")) text = attr->as<std::string>();
 		}
-		// get input type attribute ("textarea" or "multiline" => multiline)
+		// get input type attribute ("textarea" => multiline)
 		std::string inputType;
 		if (auto attr = node->astNode->getAttribute("type")) inputType = attr->as<std::string>();
-		bool isMultiline = (inputType == "textarea" || inputType == "multiline");
+		bool isMultiline = (inputType == "textarea");
 
 		// Font
 		Font font;

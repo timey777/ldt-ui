@@ -1,0 +1,12 @@
+{
+    "selectors": {
+        "#myInput": {
+            "computedWidth": { "gt": 90 }
+        }
+    },
+    "controls": {
+        "#myInput": {
+            "scrollHeight": { "gt": 20 }
+        }
+    }
+}

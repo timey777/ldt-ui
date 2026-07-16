@@ -297,6 +297,23 @@ void TreeSynchronizer::syncToControls(::DocumentRuntime* ctx, Scene* scene, cons
             scene->getControlManager()->removeRootControl(ctrl);
         }
     }
+
+    // 7) Finalize newly created controls
+    // TODO: updateControl 内会再次调用 BindControlToResolvedNode 和
+    //   SyncPropertiesFromResolvedNode，而步骤 4 的 CreateControlFromResolvedNode
+    //   已经做过一次，存在重复同步，后续需优化。
+    // 添加原因：步骤 3 只处理已存在的控件，首次创建的新控件从未走过
+    // updateControl，而 Input::updateTextLayout 依赖 Scene 已挂载（步骤 5），
+    // 必须在挂载后补调。
+    for (const auto& kv : newlyCreated) {
+        const std::string& uid = kv.first;
+        auto ctrl = kv.second;
+        if (!ctrl) continue;
+        auto it = nodeByUid.find(uid);
+        if (it != nodeByUid.end()) {
+            updateControl(ctrl, it->second);
+        }
+    }
 }
 
 } // namespace ldt

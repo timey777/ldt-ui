@@ -1,0 +1,9 @@
+@style {
+    .my-input { width:100; }
+}
+input:myInput(
+    class="my-input",
+    value="aaaa bbbb cccc dddd eeee ffff gggg hhhh",
+    type="multiline",
+    wrap=false
+)

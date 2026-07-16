@@ -289,6 +289,16 @@ namespace ldt
 				input->setPlaceholder(ast->getAttribute("placeholder")->as<std::string>());
 			if (ast->hasAttribute("type"))
 				input->setType(ast->getAttribute("type")->as<std::string>());
+			if (ast->hasAttribute("wrap")) {
+				auto wrapAttr = ast->getAttribute("wrap");
+				bool w = false;
+				if (wrapAttr->isBool()) w = wrapAttr->as<bool>();
+				else if (wrapAttr->isString()) {
+					std::string ws = wrapAttr->as<std::string>();
+					w = (ws == "true" || ws == "1");
+				}
+				input->setWrap(w);
+			}
 			input->setTextColor(resolvedNode->finalStyle.textColor);
 			input->setFontSize(resolvedNode->finalStyle.fontSize);
 			input->setPadding(resolvedNode->layout.padding.left, resolvedNode->layout.padding.top,

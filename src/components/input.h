@@ -53,8 +53,8 @@ public:
         // 绘制选区背景（若有选区）
         // Push clip so selection/text/caret are clipped to content area
         displayList.pushClip(geometry.contentClipRect);
-        // 滚动只做平移，不触发布局重建
-        displayList.pushTransform(0.0f, -geometry.currentScrollY);
+        // 滚动只做平移，不触发布局重建（垂直 + 水平）
+        displayList.pushTransform(-geometry.currentScrollX, -geometry.currentScrollY);
 
         // 绘制整行边框（仅多行文本类型且 textLayout_ 存在时绘制）
         if (multiline_ && layoutReady) {
@@ -100,32 +100,47 @@ public:
                 fontFamily_.empty() ? "" : fontFamily_,
                 placeholderParams
             );
-        } else if (layoutReady && !value_.empty() && !lines_.empty()) {
-            // 文本虚拟化：仅绘制可见行
-            int firstLine = std::max(0, static_cast<int>(geometry.currentScrollY / std::max(1.0f, geometry.lineHeight)));
-            int visibleLineCount = std::max(1, static_cast<int>(geometry.contentClipRect.height / std::max(1.0f, geometry.lineHeight)) + 2);
-            int endLine = std::min(static_cast<int>(lines_.size()), firstLine + visibleLineCount);
+        } else if (layoutReady && !value_.empty()) {
+            if (multiline_ && wrap_) {
+                // 自动换行模式：使用 textLayout_ 渲染（内部处理 \n + 宽度换行，显示换行不改字符串）
+                float layoutWidth = std::max(geometry.innerWidth,
+                    textLayout_->getBounds().w);
+                displayList.addTextLayout(
+                    textLayout_,
+                    ui::Rect(geometry.textOriginX, geometry.textOriginY,
+                             layoutWidth, textLayout_->getBounds().h),
+                    textColor);
+            } else if (!lines_.empty()) {
+                // no-wrap 模式：按 \n 分隔的逐行渲染 + 水平滚动
+                float lineRenderWidth = (multiline_ && !wrap_)
+                    ? std::max(geometry.innerWidth, totalContentWidth_ - paddingLeft_ - paddingRight_)
+                    : geometry.innerWidth;
 
-            TextLayoutParams lineParams;
-            lineParams.wrap = false;
-            lineParams.textAlign = "left";
-            lineParams.lineHeight = geometry.lineHeight;
+                int firstLine = std::max(0, static_cast<int>(geometry.currentScrollY / std::max(1.0f, geometry.lineHeight)));
+                int visibleLineCount = std::max(1, static_cast<int>(geometry.contentClipRect.height / std::max(1.0f, geometry.lineHeight)) + 2);
+                int endLine = std::min(static_cast<int>(lines_.size()), firstLine + visibleLineCount);
 
-            for (int i = firstLine; i < endLine; ++i) {
-                const auto& info = lines_[static_cast<size_t>(i)];
-                std::string lineText = value_.substr(info.startOffset, info.length);
-                displayList.addText(
-                    lineText,
-                    ui::Rect(
-                        geometry.textOriginX,
-                        geometry.textOriginY + static_cast<float>(i) * geometry.lineHeight,
-                        geometry.innerWidth,
-                        geometry.lineHeight),
-                    textColor,
-                    fontSize,
-                    fontFamily_.empty() ? "" : fontFamily_,
-                    lineParams
-                );
+                TextLayoutParams lineParams;
+                lineParams.wrap = false;
+                lineParams.textAlign = "left";
+                lineParams.lineHeight = geometry.lineHeight;
+
+                for (int i = firstLine; i < endLine; ++i) {
+                    const auto& info = lines_[static_cast<size_t>(i)];
+                    std::string lineText = value_.substr(info.startOffset, info.length);
+                    displayList.addText(
+                        lineText,
+                        ui::Rect(
+                            geometry.textOriginX,
+                            geometry.textOriginY + static_cast<float>(i) * geometry.lineHeight,
+                            lineRenderWidth,
+                            geometry.lineHeight),
+                        textColor,
+                        fontSize,
+                        fontFamily_.empty() ? "" : fontFamily_,
+                        lineParams
+                    );
+                }
             }
         }
 
@@ -146,7 +161,9 @@ public:
         if (vScrollbar_ && geometry.maxScrollY > 0.0f) {
             vScrollbar_->render(displayList, clip);
         }
-
+        if (hScrollbar_ && geometry.maxScrollX > 0.0f) {
+            hScrollbar_->render(displayList, clip);
+        }
     }
 
     std::string getTypeName() const override { return "Input"; }
@@ -179,12 +196,23 @@ public:
         if (type_ != t) {
             type_ = t; 
             multiline_ = (type_ == "textarea");
+            if (multiline_) wrap_ = true;  // 默认：textarea 自动换行
             requestLayoutRebuild();
             if (layoutDirty_) updateTextLayout();
             invalidate();
         }
     }
     const std::string& getType() const { return type_; }
+
+    void setWrap(bool wrap) {
+        if (wrap_ != wrap) {
+            wrap_ = wrap;
+            requestLayoutRebuild();
+            if (layoutDirty_) updateTextLayout();
+            invalidate();
+        }
+    }
+    bool getWrap() const { return wrap_; }
 
     // 文本颜色
     void setTextColor(const ui::Color& color) {
@@ -252,6 +280,8 @@ private:
         float totalContentHeight = 0.0f;
         float maxScrollY = 0.0f;
         float currentScrollY = 0.0f;
+        float maxScrollX = 0.0f;
+        float currentScrollX = 0.0f;
         float textOriginX = 0.0f;
         float textOriginY = 0.0f;
     };
@@ -265,6 +295,7 @@ private:
     std::string placeholder_;
     std::string type_ = "Input";
     bool multiline_ = false;
+    bool wrap_ = false;  // 多行时是否自动换行（显示换行，不改变 value_ 字符串）
     ui::Color textColor_{0.0f, 0.0f, 0.0f, 0.0f};
     ui::Color caretColor_{0,0,0,1};
     ui::Color lineBorderColor_{0,0,0,0.2f};
@@ -299,6 +330,7 @@ private:
     float lastLayoutInnerWidth_ = -1.0f;
     float contentHeight_ = 0.0f;
     float totalContentHeight_ = 0.0f;
+    float totalContentWidth_ = 0.0f;
     float lineHeight_ = 0.0f;
     std::vector<LineInfo> lines_;
     std::vector<render::Rect> selectionRects_;
@@ -337,6 +369,9 @@ private:
         const float totalContentHeight = totalContentHeight_ > 0.0f
             ? totalContentHeight_
             : (contentHeight + paddingTop_ + paddingBottom_);
+        const float totalContentWidth = totalContentWidth_ > 0.0f
+            ? totalContentWidth_
+            : innerWidth;
 
         return {
             innerWidth,
@@ -348,8 +383,10 @@ private:
                 bounds_.height - (paddingTop_ + paddingBottom_)),
             contentHeight,
             totalContentHeight,
-            std::max(0.0f, totalContentHeight - bounds_.height),
+            std::max(0.0f, totalContentHeight - bounds_.height),   // maxScrollY
             getScrollY(),
+            std::max(0.0f, totalContentWidth - innerWidth),         // maxScrollX
+            getScrollX(),
             bounds_.x + getTextLocalStartX(),
             bounds_.y + getTextLocalStartY()
         };
@@ -357,7 +394,7 @@ private:
 
     TextLayoutLocalPoint toTextLayoutLocalPoint(ControlLocalPointDp point) const {
         return {
-            point.x.value - getTextLocalStartX(),
+            point.x.value - getTextLocalStartX() + getScrollX(),
             point.y.value - getTextLocalStartY() + getScrollY()
         };
     }
@@ -394,13 +431,24 @@ private:
             vScrollbar_->setParent(this);
             vScrollbar_->setVisible(false);
         }
+        if (!hScrollbar_) {
+            hScrollbar_ = ControlFactory::getInstance()->CreateScrollbar(ScrollbarControl::Orientation::Horizontal);
+            hScrollbar_->setParent(this);
+            hScrollbar_->setVisible(false);
+        }
     }
 
     void updateScrollbarVisibility() {
         ensureScrollbarCreated();
-        if (!vScrollbar_) return;
-        float maxScrollY = std::max(0.0f, totalContentHeight_ - bounds_.height);
-        vScrollbar_->setVisible(maxScrollY > 0.0f);
+        if (vScrollbar_) {
+            float maxScrollY = std::max(0.0f, totalContentHeight_ - bounds_.height);
+            vScrollbar_->setVisible(maxScrollY > 0.0f);
+        }
+        if (hScrollbar_) {
+            float innerW = getInnerTextWidth();
+            float maxScrollX = std::max(0.0f, totalContentWidth_ - innerW);
+            hScrollbar_->setVisible(maxScrollX > 0.0f);
+        }
     }
 
     void requestLayoutRebuild() {
@@ -472,7 +520,8 @@ public:
         }
 
         if (!layoutDirty_ && textLayout_) {
-            AbstractControl::setScrollSize(innerW, totalContentHeight_);
+            float scrollW = (multiline_ && !wrap_) ? totalContentWidth_ : innerW;
+            AbstractControl::setScrollSize(scrollW, totalContentHeight_);
             updateScrollbarVisibility();
             refreshSelectionRectsCache();
             return;
@@ -492,24 +541,37 @@ public:
         font.size = fontSize;
 
         TextLayoutParams params;
-        params.wrap = false;
+        params.wrap = (multiline_ && wrap_);  // 多行 + 自动换行时才 wrap
         params.textAlign = "left";
         params.lineHeight = getResolvedLineHeight(fontSize);
         lineHeight_ = params.lineHeight;
 
         float maxWidth = -1.0f;
+        if (multiline_ && wrap_) {
+            maxWidth = innerW;  // 自动换行：限制宽度
+        }
+        // no-wrap 时 maxWidth = -1（不限制），由 textLayout 给出真实宽度
 
         // 始终基于真实 value_ 构建 text layout，placeholder 仅用于渲染显示，
         // 不应影响光标定位、点击和选区逻辑
         preprocessLines(value_);
         
         textLayout_ = drawer->createTextLayout(value_, font, params, maxWidth);
+        float textWidth = textLayout_ ? textLayout_->getBounds().w : 0.0f;
         contentHeight_ = textLayout_ ? textLayout_->getBounds().h : 0.0f;
         float minContentHeight = std::max(lineHeight_, static_cast<float>(lines_.size()) * lineHeight_);
         if (contentHeight_ < minContentHeight) contentHeight_ = minContentHeight;
         totalContentHeight_ = contentHeight_ + paddingTop_ + paddingBottom_;
 
-        AbstractControl::setScrollSize(innerW, totalContentHeight_);
+        // 水平内容宽度：wrap 模式 = innerW，no-wrap 模式 = 实际文本宽度 + padding
+        if (multiline_ && !wrap_) {
+            totalContentWidth_ = textWidth + paddingLeft_ + paddingRight_;
+        } else {
+            totalContentWidth_ = innerW;
+        }
+
+        float scrollW = (multiline_ && !wrap_) ? totalContentWidth_ : innerW;
+        AbstractControl::setScrollSize(scrollW, totalContentHeight_);
         updateScrollbarVisibility();
 
         lastLayoutInnerWidth_ = innerW;
@@ -647,6 +709,7 @@ public:
 
         // Scrollbar handling
         if (vScrollbar_ && vScrollbar_->isVisible() && vScrollbar_->onParentLocalMouseButton(makeParentLocalPoint(x, y), button, action)) return true;
+        if (hScrollbar_ && hScrollbar_->isVisible() && hScrollbar_->onParentLocalMouseButton(makeParentLocalPoint(x, y), button, action)) return true;
         
         if (action == GLFW_PRESS) { // press
             if (!hitTestLocal(point)) return false;
@@ -1009,15 +1072,38 @@ public:
         // 单行输入无滚动内容，直接放行让父容器处理滚轮事件
         if (!multiline_) return false;
 
-        // 支持鼠标滚轮滚动多行输入
         float fontSize = fontSize_ > 0.0f ? fontSize_ : 14.0f;
         float lineHeight = lineHeight_ > 0.0f ? lineHeight_ : (fontSize * 1.2f);
-        float scrollDelta = -delta.dy.value * (lineHeight * 3.0f); // 每刻度滚动约3行
-
+        float maxScrollX = std::max(0.0f, getScrollWidth() - (bounds_.width - (paddingLeft_ + paddingRight_)));
         float maxScrollY = std::max(0.0f, getScrollHeight() - (bounds_.height - (paddingTop_ + paddingBottom_)));
+
+        bool scrolled = false;
+
+        // Shift+滚轮 → 水平滚动；普通滚轮 → 垂直滚动
+        if (std::abs(delta.dx.value) > 0.01f || maxScrollX > 0.0f) {
+            // 优先响应水平 delta（触控板水平滑动）；否则 Shift+滚轮映射到水平
+            float hDelta = std::abs(delta.dx.value) > 0.01f
+                ? -delta.dx.value * (lineHeight * 1.0f)
+                : 0.0f;
+            // 如果没有水平 delta 但有垂直，且需要水平滚动（Shift+滚轮）
+            if (std::abs(hDelta) < 0.01f && std::abs(delta.dy.value) > 0.01f) {
+                hDelta = -delta.dy.value * (lineHeight * 1.0f);
+            }
+            if (std::abs(hDelta) > 0.01f) {
+                float newX = getScrollX() + hDelta;
+                newX = std::max(0.0f, std::min(newX, maxScrollX));
+                if (newX != getScrollX()) {
+                    setScroll(newX, getScrollY());
+                    markLayerDirty();
+                    scrolled = true;
+                }
+            }
+        }
+
+        // 垂直滚动
+        float scrollDelta = -delta.dy.value * (lineHeight * 3.0f);
         float newY = getScrollY() + scrollDelta;
         newY = std::max(0.0f, std::min(newY, maxScrollY));
-        bool scrolled = false;
         if (newY != getScrollY()) {
             setScroll(getScrollX(), newY);
             markLayerDirty();
@@ -1025,7 +1111,7 @@ public:
         }
         if (getScene()) {
             UpdateScheduler::getInstance().requestPaint();
-            emitScrollEvent();
+            if (scrolled) emitScrollEvent();
         }
         return scrolled;
     }

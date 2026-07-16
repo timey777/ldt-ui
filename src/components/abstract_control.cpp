@@ -157,6 +157,7 @@ namespace ldt {
 	}
 
 	void AbstractControl::setVisible(bool visible) {
+		if (visible_ == visible) return;
 		visible_ = visible;
 		auto scene = getScene();
 		if (scene)
