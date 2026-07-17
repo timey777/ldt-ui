@@ -4,7 +4,7 @@
 
 > 🚧 **早期版本** — 本项目处于早期开发阶段，API 和 DSL 语法可能发生变化。
 
-**LDT** 是一个使用 C++17 编写的**轻量级声明式 UI 框架**，专为桌面端（Windows、Linux）和移动端（Android）打造，也可以方便地与 AI 配合生成原生 UI。
+**LDT** 是一个使用 C++17 编写的**轻量级 C++ 原生 UI 运行时**，由声明式 DSL 驱动，专为构建小型跨平台应用而设计。其简洁的 DSL 语法也非常适合 AI 辅助生成原生 UI。
 
 ---
 
@@ -25,28 +25,50 @@
 
 ## 快速开始
 
-### 构建（桌面端）
+### Linux
+
+安装依赖：
 
 ```bash
-# Linux / macOS
-chmod +x build.sh
-./build.sh
-
-# 构建产物位于 build/bin/ 目录
+sudo apt update
+sudo apt install -y \
+  cmake \
+  ninja-build \
+  build-essential \
+  libx11-dev \
+  libxrandr-dev \
+  libxinerama-dev \
+  libxcursor-dev \
+  libxi-dev \
+  libfreetype-dev
 ```
 
-**Windows**：使用 CMake GUI 或 Visual Studio 打开 `CMakeLists.txt` 即可。
+构建：
 
-### 构建（Android）
+```bash
+git clone https://github.com/timey777/ldt-ui.git
+cd ldt-ui
+
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+```
+
+运行：
+
+```bash
+./build/bin/examples
+```
+
+### Windows
+
+```powershell
+cmake -B build
+cmake --build build --config Release
+```
+
+### Android
 
 参见 [Android 构建指南](android_example/BUILD_ANDROID.md)。
-
-### 运行示例
-
-```bash
-cd build
-./bin/examples
-```
 
 示例代码位于 [`examples/`](examples/) 目录。
 
@@ -76,6 +98,7 @@ ldt-ui/
 ├── examples/             # 示例代码
 ├── docs/                 # 文档
 ├── thirdparty/           # 第三方依赖（glfw, glad, freetype）
+├── ldt-tests/            # 测试用例与测试框架
 ├── android_example/      # Android 工程示例
 └── resources/            # 字体等资源文件
 ```

@@ -4,7 +4,7 @@
 
 > 🚧 **Early Stage** — This project is in active early development. APIs and DSL syntax may change.
 
-**LDT** is a **lightweight declarative UI framework** written in C++17, designed for desktop (Windows, Linux) and mobile (Android). Its concise DSL is also well-suited for AI-assisted UI generation.
+**LDT** is a **lightweight C++ native UI runtime** driven by a declarative DSL, designed for building small, cross-platform applications. Its concise DSL is also well-suited for AI-assisted UI generation.
 
 ---
 
@@ -25,28 +25,50 @@
 
 ## Quick Start
 
-### Build (Desktop)
+### Linux
+
+Install dependencies:
 
 ```bash
-# Linux / macOS
-chmod +x build.sh
-./build.sh
-
-# Output binaries are in build/bin/
+sudo apt update
+sudo apt install -y \
+  cmake \
+  ninja-build \
+  build-essential \
+  libx11-dev \
+  libxrandr-dev \
+  libxinerama-dev \
+  libxcursor-dev \
+  libxi-dev \
+  libfreetype-dev
 ```
 
-**Windows**: Open `CMakeLists.txt` with CMake GUI or Visual Studio.
+Build:
 
-### Build (Android)
+```bash
+git clone https://github.com/timey777/ldt-ui.git
+cd ldt-ui
+
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+```
+
+Run:
+
+```bash
+./build/bin/examples
+```
+
+### Windows
+
+```powershell
+cmake -B build
+cmake --build build --config Release
+```
+
+### Android
 
 See [Android Build Guide](android_example/BUILD_ANDROID.md).
-
-### Run Examples
-
-```bash
-cd build
-./bin/examples
-```
 
 Example source code is in the [`examples/`](examples/) directory.
 
@@ -76,6 +98,7 @@ ldt-ui/
 ├── examples/             # Example applications
 ├── docs/                 # Documentation
 ├── thirdparty/           # Third-party dependencies (glfw, glad, freetype)
+├── ldt-tests/            # Test cases and test framework
 ├── android_example/      # Android project example
 └── resources/            # Fonts and other resource files
 ```

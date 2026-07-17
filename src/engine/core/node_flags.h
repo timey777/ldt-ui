@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <array>
 #include <string>
+#include <cmath>
 #include "components/uitypes.h"
 
 namespace ldt {
@@ -19,7 +20,7 @@ static constexpr float AUTO_SENTINEL = -1.0f;
 static constexpr float UNBOUNDED = std::numeric_limits<float>::infinity();
 
 inline bool isAuto(float v) { return v == AUTO_SENTINEL; }
-inline bool isDefinite(float v) { return v >= 0.0f && isfinite(v); }
+inline bool isDefinite(float v) { return v >= 0.0f && std::isfinite(v); }
 
 enum class Unit : uint8_t {
     Px,

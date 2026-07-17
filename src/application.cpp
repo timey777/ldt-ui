@@ -1,5 +1,5 @@
-﻿// Application.cpp
-#include "Application.h"
+﻿// application.cpp
+#include "application.h"
 
 #include <iostream>
 #include <fstream>
