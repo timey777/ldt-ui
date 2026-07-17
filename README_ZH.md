@@ -2,6 +2,10 @@
 
 # LDT — Lightweight Declarative Toolkit
 
+[![Build LDT](https://github.com/timey777/ldt-ui/actions/workflows/build.yml/badge.svg)](https://github.com/timey777/ldt-ui/actions/workflows/build.yml)
+[![Android Build](https://github.com/timey777/ldt-ui/actions/workflows/android.yml/badge.svg)](https://github.com/timey777/ldt-ui/actions/workflows/android.yml)
+![C++17](https://img.shields.io/badge/C%2B%2B-17-blue.svg)
+
 > 🚧 **早期版本** — 本项目处于早期开发阶段，API 和 DSL 语法可能发生变化。
 
 **LDT** 是一个使用 C++17 编写的**轻量级 C++ 原生 UI 运行时**，由声明式 DSL 驱动，专为构建小型跨平台应用而设计。其简洁的 DSL 语法也非常适合 AI 辅助生成原生 UI。
