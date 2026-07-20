@@ -131,7 +131,7 @@ type(attr) { child1, child2, child3(id="x") }
 | `margin` | Edges | `0` | 否 | 四边外边距，支持 `auto` |
 | `margin-top/right/bottom/left` | px | `0` | 否 | 单边外边距，支持 `auto` |
 | `box-sizing` | keyword | `content-box` | 否 | `content-box` / `border-box` |
-| `overflow` | keyword | `visible` | 否 | `visible` / `hidden` / `scroll` / `auto` |
+| `overflow` | keyword | `auto` | 否 | `visible` / `hidden` / `scroll` / `auto` |
 
 ### 5.5 视觉效果
 
@@ -378,6 +378,97 @@ panel(class="scroll-box") {
     panel(class="row-item") { text(value="Item 6") }
 }
 ```
+
+---
+
+## 附录：DSL 与 HTML+CSS 的关键差异（AI 生成必读）
+
+以下差异是 DSL 设计层面的选择，与标准 CSS 行为不同，生成时必须注意。
+
+### 1. ⭐ `overflow` 默认值为 `auto`（而非 CSS 的 `visible`）
+
+标准 CSS 中块级元素默认 `overflow: visible`（内容溢出不会被裁剪）。
+**LDT DSL 中默认 `overflow: auto`**，内容超出容器高度/宽度时自动出现滚动条。
+
+```ldt
+/* 未设置 overflow → 默认 auto */
+.panel { height: 100px; }  
+/* 内部子元素总高 > 100px 时 → 自动出现纵向滚动条 */
+```
+
+> 需要裁剪不显示滚动条：显式写 `overflow: hidden`
+> 需要内容自由溢出：显式写 `overflow: visible`
+
+### 2. ⭐ `height: 100%` + `padding` 必须配 `box-sizing: border-box`
+
+这是 DSL 盒模型与标准 CSS 的**核心差异**。原因如下：
+
+**CSS 标准盒模型（`content-box`）**：
+```
+height: 100%   → content 高度 = 父容器 content 高度的 100%
++ padding      → border-box 高度 = 100% + padding（超出父容器）
+```
+
+在标准 CSS 中，`height: 100%` 的子元素如果有 padding，会**撑破父容器**。但 Web 浏览器因 `overflow: visible` 默认行为，内容溢出通常仅视觉覆盖、不触发滚动条。
+
+**在 LDT DSL 中**：
+- `overflow` 默认 `auto` → 子元素一旦撑破父容器，**立即触发滚动条**
+- 因此 `height: 100%` + `padding` 的组合几乎必然导致父容器出现滚动条
+
+```ldt
+/* ❌ 默认 content-box：border-box = 100% + 24px×2 → 撑破父容器，触发滚动条 */
+.card { height: 100%; padding: 24px; }
+
+/* ✅ border-box：height 包含 padding，border-box 精确 = 100%，不溢出 */
+.card { height: 100%; padding: 24px; box-sizing: border-box; }
+```
+
+**结论**：在 DSL 中，只要用 `height: 100%`（或 `width: 100%`）的同时设了 `padding`，**一律加 `box-sizing: border-box`**，否则 100% + padding 必然溢出父级。
+
+### 3. 固定尺寸容器需留意内容是否超出
+
+因默认 `overflow: auto`，给容器写固定 `height` 或 `width` 时，若内部子元素总和超出该尺寸，会**自动出现滚动条**。不是 Bug，是设计行为。
+
+```ldt
+/* 若内容总高约 35px，固定 30px → 滚动条出现 */
+.progress-area { height: 30px; }
+
+/* 去掉固定高度或用 auto 让内容自然撑开 */
+.progress-area { }
+```
+
+### 4. `background-image` 仅支持本地文件路径
+
+不支持 HTTP URL。图片引擎通过本地文件系统加载。
+
+```ldt
+/* ❌ 不支持 */
+background-image: "https://example.com/image.jpg";
+
+/* ✅ 仅支持本地路径 */
+background-image: "images/cover.png";
+```
+
+### 5. 中文字体不含 emoji 字形
+
+内置字体 `AlibabaPuHuiTi` 不含 emoji。使用 emoji（🔀 ⏮ ⏸ 等）会显示为方块 `□`。用英文文字代替。
+
+```ldt
+/* ❌ 不显示 */    text(value="🔀")
+/* ✅ 可显示 */    text(value="RDM")
+```
+
+### 6. 多层嵌套时逐层核算 content-box 高度
+
+```
+Root (800×600)
+  └── Container (100% × 100%)        = 800×600
+       └── Card (height:100%, box-sizing:border-box) = 360×600
+            └── content-box = 600 - 32padding = 568px
+                 └── 子元素总高约 572px → 超出 4px → 出现滚动条
+```
+
+生成多层嵌套 DSL 时，逐层计算 content-box 是否能容纳子元素总和。
 
 ---
 
