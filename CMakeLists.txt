@@ -78,6 +78,7 @@ endif()
 ########################################
 add_subdirectory(src)
 add_subdirectory(examples)
+add_subdirectory(hello_world)
 if(EXISTS ${CMAKE_SOURCE_DIR}/ldt-tests/CMakeLists.txt)
     add_subdirectory(ldt-tests)
 endif()

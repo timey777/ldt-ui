@@ -27,7 +27,7 @@ public:
     Application(std::string title,
     float winW,
     float winH);
-    ~Application();
+    virtual ~Application();
     int run(int argc, char* argv[]);
 
     // GLFW callback wrappers
