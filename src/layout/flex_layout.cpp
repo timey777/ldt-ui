@@ -35,18 +35,34 @@ float FlexLayout::getCrossSize(const ldt::ResolvedNode* node, bool isRow) {
     return isRow ? node->layout.getMarginBox().height : node->layout.getMarginBox().width;
 }
 
-static float getFlexAutoMinMainContentSize(const ldt::ResolvedNode* node,
-                                           const IPropertyProvider& props,
-                                           bool isRow) {
-    if (isRow) {
-        return node->layout.minWidth;
+static float getFlexMinMainContentSize(const ldt::ResolvedNode* node,
+                                       const IPropertyProvider& props,
+                                       bool isRow) {
+    const LayoutUnit minSize = isRow ? props.getMinWidth() : props.getMinHeight();
+    if (!minSize.isAuto()) {
+        return isRow ? node->layout.minWidth : node->layout.minHeight;
     }
 
-    float minMain = node->layout.minHeight;
-    if (props.getHeight().isAuto()) {
-        minMain = std::max(minMain, node->layout.computedHeight);
+    // Preserve the existing column behavior: auto-height content is its own
+    // shrink floor unless min-height explicitly opts into a smaller value.
+    if (!isRow && props.getHeight().isAuto()) {
+        return node->layout.computedHeight;
     }
-    return minMain;
+    return 0.0f;
+}
+
+static float getFlexMaxMainContentSize(const ldt::ResolvedNode* node, bool isRow) {
+    return isRow ? node->layout.maxWidth : node->layout.maxHeight;
+}
+
+static float getComputedMainContentSize(const ldt::ResolvedNode* node, bool isRow) {
+    return isRow ? node->layout.computedWidth : node->layout.computedHeight;
+}
+
+static void setComputedMainContentSize(ldt::ResolvedNode* node, bool isRow, float value) {
+    if (isRow) node->layout.computedWidth = value;
+    else node->layout.computedHeight = value;
+    node->layout.finalizeSizes();
 }
 
 float FlexLayout::getMarginMain(const ldt::ResolvedNode* node, bool isRow) {
@@ -167,96 +183,103 @@ void FlexLayout::layoutFlex(BoxModelEngine* engine, ldt::ResolvedNode* node,
     for (auto& line : lines) {
         float usedMain = line.mainSize;
         float freeMain = containerMain - usedMain;
-        
-        float totalFlexGrow = 0;
-        for (size_t idx : line.childIndices) {
-            totalFlexGrow += node->getFlowChildren()[idx]->props().getFlexGrow();
-        }
-        if (totalFlexGrow > 0 && freeMain > 0) {
-            float addedSpaceTotal = 0;
+
+        auto refreshLine = [&]() {
+            line.mainSize = 0.0f;
+            line.crossSize = 0.0f;
             for (size_t idx : line.childIndices) {
                 auto& child = node->getFlowChildren()[idx];
-                const IPropertyProvider& childRes = child->props();
-                float grow = childRes.getFlexGrow();
-                if (grow > 0) {
-                    float share = (grow / totalFlexGrow) * freeMain;
-                    if (isRow) {
-                        child->layout.computedWidth += share;
-                        child->layout.finalizeSizes();
-                    } else {
-                        child->layout.computedHeight += share;
-                        child->layout.finalizeSizes();
-                    }
-
-                    // Re-measure children of this item because its size changed
-                    engine->reMeasureChildren(child);
-                    addedSpaceTotal += share;
-                }
+                line.mainSize += getMainSize(child, isRow);
+                line.crossSize = std::max(line.crossSize, getCrossSize(child, isRow));
             }
-            line.mainSize += addedSpaceTotal;
-            usedMain += addedSpaceTotal;
-            freeMain -= addedSpaceTotal;
+            if (line.childIndices.size() > 1) {
+                line.mainSize += gap * static_cast<float>(line.childIndices.size() - 1);
+            }
+            usedMain = line.mainSize;
+            freeMain = containerMain - usedMain;
+        };
+
+        if (freeMain > 0.0f) {
+            for (size_t pass = 0; pass < line.childIndices.size() && freeMain > 0.0f; ++pass) {
+                float totalFlexGrow = 0.0f;
+                for (size_t idx : line.childIndices) {
+                    auto& child = node->getFlowChildren()[idx];
+                    const float grow = std::max(0.0f, child->props().getFlexGrow());
+                    if (grow > 0.0f &&
+                        ldt::floatGreater(getFlexMaxMainContentSize(child, isRow),
+                                          getComputedMainContentSize(child, isRow))) {
+                        totalFlexGrow += grow;
+                    }
+                }
+                if (totalFlexGrow <= 0.0f) break;
+
+                const float spaceToDistribute = freeMain;
+                float addedSpaceTotal = 0.0f;
+                for (size_t idx : line.childIndices) {
+                    auto& child = node->getFlowChildren()[idx];
+                    const float grow = std::max(0.0f, child->props().getFlexGrow());
+                    const float current = getComputedMainContentSize(child, isRow);
+                    const float maximum = getFlexMaxMainContentSize(child, isRow);
+                    if (grow <= 0.0f || !ldt::floatGreater(maximum, current)) continue;
+
+                    const float share = (grow / totalFlexGrow) * spaceToDistribute;
+                    const float next = std::min(maximum, current + share);
+                    const float added = next - current;
+                    if (added <= 0.0f) continue;
+
+                    setComputedMainContentSize(child, isRow, next);
+                    engine->reMeasureChildren(child);
+                    addedSpaceTotal += added;
+                }
+                if (addedSpaceTotal <= 0.0f) break;
+                refreshLine();
+            }
         }
 
         if (freeMain < 0.0f) {
-            float totalScaledShrink = 0.0f;
+            std::vector<float> shrinkBases;
+            shrinkBases.reserve(line.childIndices.size());
             for (size_t idx : line.childIndices) {
                 auto& child = node->getFlowChildren()[idx];
-                const IPropertyProvider& childRes = child->props();
-                const float shrink = std::max(0.0f, childRes.getFlexShrink());
-                if (shrink <= 0.0f) {
-                    continue;
-                }
-                totalScaledShrink += getMainSize(child, isRow) * shrink;
+                shrinkBases.push_back(getMainSize(child, isRow));
             }
 
-            if (totalScaledShrink > 0.0f) {
+            for (size_t pass = 0; pass < line.childIndices.size() && freeMain < 0.0f; ++pass) {
+                float totalScaledShrink = 0.0f;
+                for (size_t i = 0; i < line.childIndices.size(); ++i) {
+                    auto& child = node->getFlowChildren()[line.childIndices[i]];
+                    const IPropertyProvider& childRes = child->props();
+                    const float shrink = std::max(0.0f, childRes.getFlexShrink());
+                    const float minimum = getFlexMinMainContentSize(child, childRes, isRow);
+                    if (shrink > 0.0f &&
+                        ldt::floatGreater(getComputedMainContentSize(child, isRow), minimum)) {
+                        totalScaledShrink += shrinkBases[i] * shrink;
+                    }
+                }
+                if (totalScaledShrink <= 0.0f) break;
+
                 const float overflowMain = -freeMain;
-                for (size_t idx : line.childIndices) {
+                float reducedSpaceTotal = 0.0f;
+                for (size_t i = 0; i < line.childIndices.size(); ++i) {
+                    const size_t idx = line.childIndices[i];
                     auto& child = node->getFlowChildren()[idx];
                     const IPropertyProvider& childRes = child->props();
                     const float shrink = std::max(0.0f, childRes.getFlexShrink());
-                    if (shrink <= 0.0f) {
-                        continue;
-                    }
+                    const float current = getComputedMainContentSize(child, isRow);
+                    const float minimum = getFlexMinMainContentSize(child, childRes, isRow);
+                    if (shrink <= 0.0f || !ldt::floatGreater(current, minimum)) continue;
 
-                    const float basisMain = getMainSize(child, isRow);
-                    if (basisMain <= 0.0f) {
-                        continue;
-                    }
+                    const float reduction = overflowMain * ((shrinkBases[i] * shrink) / totalScaledShrink);
+                    const float next = std::max(minimum, current - reduction);
+                    const float reduced = current - next;
+                    if (reduced <= 0.0f) continue;
 
-                    const float reduction = overflowMain * ((basisMain * shrink) / totalScaledShrink);
-                    const float minMainContent = getFlexAutoMinMainContentSize(child, childRes, isRow);
-
-                    bool changed = false;
-                    if (isRow) {
-                        const float nextWidth = std::max(minMainContent, child->layout.computedWidth - reduction);
-                        changed = !ldt::floatEqual(nextWidth, child->layout.computedWidth);
-                        child->layout.computedWidth = nextWidth;
-                    } else {
-                        const float nextHeight = std::max(minMainContent, child->layout.computedHeight - reduction);
-                        changed = !ldt::floatEqual(nextHeight, child->layout.computedHeight);
-                        child->layout.computedHeight = nextHeight;
-                    }
-
-                    if (changed) {
-                        child->layout.finalizeSizes();
-                        engine->reMeasureChildren(child);
-                    }
+                    setComputedMainContentSize(child, isRow, next);
+                    engine->reMeasureChildren(child);
+                    reducedSpaceTotal += reduced;
                 }
-
-                line.mainSize = 0.0f;
-                line.crossSize = 0.0f;
-                for (size_t idx : line.childIndices) {
-                    auto& child = node->getFlowChildren()[idx];
-                    line.mainSize += getMainSize(child, isRow);
-                    line.crossSize = std::max(line.crossSize, getCrossSize(child, isRow));
-                }
-                if (line.childIndices.size() > 1) {
-                    line.mainSize += gap * static_cast<float>(line.childIndices.size() - 1);
-                }
-                usedMain = line.mainSize;
-                freeMain = containerMain - usedMain;
+                if (reducedSpaceTotal <= 0.0f) break;
+                refreshLine();
             }
         }
         
@@ -305,7 +328,10 @@ void FlexLayout::layoutFlex(BoxModelEngine* engine, ldt::ResolvedNode* node,
                     if (isRow) {
                     if (childRes.getDisplay() != ldt::FormattingContext::Inline && childRes.getHeight().isAuto()) {
                          float availableForContent = targetCross - child->layout.margin.vertical() - child->layout.border.vertical() - child->layout.padding.vertical();
-                         child->layout.computedHeight = std::max(0.0f, availableForContent);
+                         child->layout.computedHeight = clampf_flex(
+                             std::max(0.0f, availableForContent),
+                             child->layout.minHeight,
+                             child->layout.maxHeight);
                          child->layout.finalizeSizes();
                          childCross = child->layout.getMarginBox().height;
                          // Re-measure children of this item because its size changed (stretch)
@@ -314,7 +340,10 @@ void FlexLayout::layoutFlex(BoxModelEngine* engine, ldt::ResolvedNode* node,
                 } else {
                     if (childRes.getDisplay() != ldt::FormattingContext::Inline && childRes.getWidth().isAuto()) {
                         float availableForContent = targetCross - child->layout.margin.horizontal() - child->layout.border.horizontal() - child->layout.padding.horizontal();
-                        child->layout.computedWidth = std::max(0.0f, availableForContent);
+                        child->layout.computedWidth = clampf_flex(
+                            std::max(0.0f, availableForContent),
+                            child->layout.minWidth,
+                            child->layout.maxWidth);
                         child->layout.finalizeSizes();
                         childCross = child->layout.getMarginBox().width;
                         // Re-measure children of this item because its size changed (stretch)

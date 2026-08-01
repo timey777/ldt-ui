@@ -38,3 +38,30 @@ TEST_CASE("layout/flex_shrink") {
     // B has higher shrink factor → narrower than A
     EXPECT_LT(bW, aW);
 }
+
+TEST_CASE("layout/flex_shrink_redistributes_after_min_width") {
+    TestEnv env;
+
+    std::string ldt =
+        "@style {"
+        " .container { width:300; height:100; }"
+        " .item { width:200; height:50; min-width:0; }"
+        " .limited { min-width:180; }"
+        "}"
+        "@layout {"
+        " .container { display:flex; flex-direction:row; }"
+        " .item { flex-shrink:1; }"
+        "}"
+        "panel:container(class=\"container\") {"
+        " panel:itemA(class=\"item limited\")"
+        " panel:itemB(class=\"item\")"
+        "}";
+
+    env.load(ldt);
+    auto* itemA = env.findById("itemA");
+    auto* itemB = env.findById("itemB");
+    EXPECT_NOT_NULL(itemA);
+    EXPECT_NOT_NULL(itemB);
+    EXPECT_FLOAT_EQ(itemA->layout.computedWidth, 180.0f, 0.5f);
+    EXPECT_FLOAT_EQ(itemB->layout.computedWidth, 120.0f, 0.5f);
+}

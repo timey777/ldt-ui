@@ -194,8 +194,6 @@ type(attr) { child1, child2, child3(id="x") }
 | **`flex` 简写** | 不能 `flex: 1` | 分别写 `flex-grow` + `flex-shrink` |
 | **`order`** | 无法改变视觉顺序 | 调整源码节点顺序 |
 | **`align-content`** | 多行时交叉轴分布不可控 | 行仅简单堆叠 |
-| **`min-width/height`** | 未暴露 DSL 属性 | 内部 clamp 固定 (0, FLT_MAX) |
-| **`max-width/height`** | 同上 | 同上 |
 | **`row-gap / column-gap`** | 仅单一 `gap` | — |
 | **百分比 gap** | gap 仅绝对长度 | — |
 | **`wrap-reverse`** | 枚举存在但交叉轴可能非标准 | 优先用 wrap |
@@ -242,7 +240,7 @@ type(attr) { child1, child2, child3(id="x") }
 | 14 | display:none | `display: none` | `visible: false` 或 `display: none` |
 | 15 | rgba() 颜色 | `rgba(0,0,0,0.5)` | `opacity: 0.5` + `background-color: #000000` |
 | 16 | CSS 特异性计算 | 依赖选择器权重 | 规则按出现顺序覆盖（后面覆盖前面） |
-| 17 | min/max-width/height | `min-width: 100px` | ❌ 不支持（内部固定 clamp 0~FLT_MAX） |
+| 17 | min/max-width/height | `min-width: 100px` | ✅ 轻量支持 `auto`、绝对长度和百分比 |
 | 18 | 伪元素 | `::before`, `::after` | ❌ 不支持 |
 | 19 | @media 查询 | `@media (max-width: 768px)` | ❌ 不支持 |
 | 20 | transform/transition | `transform: rotate(45deg)` | ❌ 不支持 |

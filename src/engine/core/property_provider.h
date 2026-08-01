@@ -19,6 +19,10 @@ namespace ldt {
         // --- 盒模型核心几何属性 ---
         virtual LayoutUnit getWidth() const = 0;
         virtual LayoutUnit getHeight() const = 0;
+        virtual LayoutUnit getMinWidth() const = 0;
+        virtual LayoutUnit getMinHeight() const = 0;
+        virtual LayoutUnit getMaxWidth() const = 0;
+        virtual LayoutUnit getMaxHeight() const = 0;
         virtual ui::Edges getPadding() const = 0;
         virtual ui::Edges getMargin() const = 0;
         virtual std::array<bool, 4> getMarginAuto() const = 0;

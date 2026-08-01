@@ -42,6 +42,10 @@ static void mergeStyle(ldt::ComputedStyle& target, const ldt::StyleDelta& delta)
     if (delta.has(ldt::StyleProp::TextAlign)) target.textAlign = delta.textAlign;
     if (delta.has(ldt::StyleProp::Width)) target.width = delta.width;
     if (delta.has(ldt::StyleProp::Height)) target.height = delta.height;
+    if (delta.has(ldt::StyleProp::MinWidth)) target.minWidth = delta.minWidth;
+    if (delta.has(ldt::StyleProp::MinHeight)) target.minHeight = delta.minHeight;
+    if (delta.has(ldt::StyleProp::MaxWidth)) target.maxWidth = delta.maxWidth;
+    if (delta.has(ldt::StyleProp::MaxHeight)) target.maxHeight = delta.maxHeight;
     if (delta.has(ldt::StyleProp::Overflow)) target.overflow = delta.overflow;
     if (delta.has(ldt::StyleProp::BoxSizing)) target.boxSizing = delta.boxSizing;
     if (delta.has(ldt::StyleProp::Padding)) {
@@ -83,6 +87,10 @@ static void mergeStyleWithOrder(ldt::ComputedStyle& target,
         {StyleProp::TextAlign, [](ldt::ComputedStyle& t, const ldt::StyleDeclaration& d) { t.textAlign = d.textAlign; }},
         {StyleProp::Width, [](ldt::ComputedStyle& t, const ldt::StyleDeclaration& d) { t.width = d.width; }},
         {StyleProp::Height, [](ldt::ComputedStyle& t, const ldt::StyleDeclaration& d) { t.height = d.height; }},
+        {StyleProp::MinWidth, [](ldt::ComputedStyle& t, const ldt::StyleDeclaration& d) { t.minWidth = d.minWidth; }},
+        {StyleProp::MinHeight, [](ldt::ComputedStyle& t, const ldt::StyleDeclaration& d) { t.minHeight = d.minHeight; }},
+        {StyleProp::MaxWidth, [](ldt::ComputedStyle& t, const ldt::StyleDeclaration& d) { t.maxWidth = d.maxWidth; }},
+        {StyleProp::MaxHeight, [](ldt::ComputedStyle& t, const ldt::StyleDeclaration& d) { t.maxHeight = d.maxHeight; }},
         {StyleProp::Overflow, [](ldt::ComputedStyle& t, const ldt::StyleDeclaration& d) { t.overflow = d.overflow; }},
         {StyleProp::BoxSizing, [](ldt::ComputedStyle& t, const ldt::StyleDeclaration& d) { t.boxSizing = d.boxSizing; }},
         {StyleProp::Padding, [](ldt::ComputedStyle& t, const ldt::StyleDeclaration& d) {

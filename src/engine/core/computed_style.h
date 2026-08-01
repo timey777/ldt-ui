@@ -33,6 +33,10 @@ enum class StyleProp : uint32_t {
     TextAlign,
     Width,
     Height,
+    MinWidth,
+    MinHeight,
+    MaxWidth,
+    MaxHeight,
     Overflow,
     BoxSizing,
     Padding,
@@ -62,6 +66,10 @@ struct ComputedStyle {
     TextAlign textAlign = TextAlign::Left;
     LayoutUnit width = LayoutUnit::autoUnit();
     LayoutUnit height = LayoutUnit::autoUnit();
+    LayoutUnit minWidth = LayoutUnit::autoUnit();
+    LayoutUnit minHeight = LayoutUnit::autoUnit();
+    LayoutUnit maxWidth = LayoutUnit::autoUnit();
+    LayoutUnit maxHeight = LayoutUnit::autoUnit();
     Overflow overflow = Overflow::Auto;
     BoxSizing boxSizing = BoxSizing::ContentBox;
     ui::Edges padding = {0, 0, 0, 0};

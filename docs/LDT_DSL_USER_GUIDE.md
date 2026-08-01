@@ -216,6 +216,10 @@ LDT DSL 支持以下五种单位：
 |------|------|--------|------|
 | `width` | 宽度 | 数值+单位/`auto` | `width: 300px` |
 | `height` | 高度 | 数值+单位/`auto` | `height: 100%` |
+| `min-width` | 最小宽度 | 数值+单位/`auto` | `min-width: 0` |
+| `min-height` | 最小高度 | 数值+单位/`auto` | `min-height: 0` |
+| `max-width` | 最大宽度 | 数值+单位/`auto` | `max-width: 600px` |
+| `max-height` | 最大高度 | 数值+单位/`auto` | `max-height: 80%` |
 | `padding` | 四边内边距 | 数值 | `padding: 16px` |
 | `padding-top` | 上内边距 | 数值 | `padding-top: 8px` |
 | `padding-right` | 右内边距 | 数值 | `padding-right: 12px` |
@@ -234,6 +238,8 @@ LDT DSL 支持以下五种单位：
 `box-sizing: border-box` 表示 `width`/`height` 包含 padding 和 border；`content-box`（默认）表示仅包含内容区。
 
 `overflow: scroll` 或 `auto` 会在内容超出容器时显示滚动条。
+
+尺寸约束是轻量实现，仅支持 `auto`、绝对长度和百分比。`max-* : auto` 表示不限制；column flex 中，auto 高度子项默认不会收缩到内容高度以下，显式设置 `min-height: 0` 可允许其收缩到父容器分配的剩余空间，并由 `overflow` 处理内部内容。
 
 ### 6.5 视觉效果
 
@@ -350,8 +356,6 @@ LDT DSL 支持以下五种单位：
 | `flex` 简写属性 | 不能写 `flex: 1`，需要分别写 `flex-grow` 和 `flex-shrink` |
 | `order` | 无法改变子元素的视觉排列顺序，顺序由源码位置决定 |
 | `align-content` | 多行时行与行之间的交叉轴分布不可控，仅简单堆叠 |
-| `min-width / max-width` | 最小/最大宽度约束未暴露为 DSL 属性 |
-| `min-height / max-height` | 最小/最大高度约束未暴露为 DSL 属性 |
 
 适用于工具栏、导航栏、卡片网格等需要灵活对齐的场景。
 

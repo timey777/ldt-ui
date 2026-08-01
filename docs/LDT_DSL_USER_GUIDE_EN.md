@@ -216,6 +216,10 @@ The following properties support **inheritance**: when a child node does not set
 |----------|-------------|-----------------|---------|
 | `width` | Width | Value + unit / `auto` | `width: 300px` |
 | `height` | Height | Value + unit / `auto` | `height: 100%` |
+| `min-width` | Minimum width | Value + unit / `auto` | `min-width: 0` |
+| `min-height` | Minimum height | Value + unit / `auto` | `min-height: 0` |
+| `max-width` | Maximum width | Value + unit / `auto` | `max-width: 600px` |
+| `max-height` | Maximum height | Value + unit / `auto` | `max-height: 80%` |
 | `padding` | Uniform padding | Value | `padding: 16px` |
 | `padding-top` | Top padding | Value | `padding-top: 8px` |
 | `padding-right` | Right padding | Value | `padding-right: 12px` |
@@ -234,6 +238,8 @@ The following properties support **inheritance**: when a child node does not set
 `box-sizing: border-box` means `width`/`height` include padding and border; `content-box` (default) means content area only.
 
 `overflow: scroll` or `auto` shows scrollbars when content exceeds the container.
+
+Size constraints are intentionally lightweight and accept only `auto`, absolute lengths, and percentages. `max-* : auto` means unbounded. In a column flex container, an auto-height child does not shrink below its content height by default; set `min-height: 0` to let it shrink into the parent's remaining space and let `overflow` handle its content.
 
 ### 6.5 Visual Effects
 
@@ -350,8 +356,6 @@ The following Flex features are **not yet implemented**:
 | `flex` shorthand | Cannot write `flex: 1`; use separate `flex-grow` and `flex-shrink` |
 | `order` | Cannot change visual order of children; order follows source position |
 | `align-content` | Multi-line cross-axis distribution of rows is uncontrollable; simple stacking only |
-| `min-width / max-width` | Min/max width constraints not exposed as DSL properties |
-| `min-height / max-height` | Min/max height constraints not exposed as DSL properties |
 
 ### 8.3 Inline Layout
 

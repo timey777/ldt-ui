@@ -292,6 +292,18 @@ static void applyPropertiesToComputedStyle(ldt::ComputedStyle &out, const std::m
             else if (k == "height") {
                 (void)applyLayoutUnitField(out.height, v);
             }
+            else if (k == "min-width") {
+                (void)applyLayoutUnitField(out.minWidth, v);
+            }
+            else if (k == "min-height") {
+                (void)applyLayoutUnitField(out.minHeight, v);
+            }
+            else if (k == "max-width") {
+                (void)applyLayoutUnitField(out.maxWidth, v);
+            }
+            else if (k == "max-height") {
+                (void)applyLayoutUnitField(out.maxHeight, v);
+            }
             else if (k == "overflow") { if (v.isString()) out.overflow = ldt::overflowFromString(v.as<std::string>()); }
             else if (k == "box-sizing") { if (v.isString()) out.boxSizing = ldt::boxSizingFromString(v.as<std::string>()); }
             else if (k == "padding") {
@@ -399,6 +411,18 @@ static void applyPropertiesToStyleDelta(ldt::StyleDelta &out, const std::map<std
             else if (k == "height") {
                 if (applyLayoutUnitField(out.height, v)) out.set(ldt::StyleProp::Height);
             }
+            else if (k == "min-width") {
+                if (applyLayoutUnitField(out.minWidth, v)) out.set(ldt::StyleProp::MinWidth);
+            }
+            else if (k == "min-height") {
+                if (applyLayoutUnitField(out.minHeight, v)) out.set(ldt::StyleProp::MinHeight);
+            }
+            else if (k == "max-width") {
+                if (applyLayoutUnitField(out.maxWidth, v)) out.set(ldt::StyleProp::MaxWidth);
+            }
+            else if (k == "max-height") {
+                if (applyLayoutUnitField(out.maxHeight, v)) out.set(ldt::StyleProp::MaxHeight);
+            }
             else if (k == "overflow") { if (v.isString()) { out.overflow = ldt::overflowFromString(v.as<std::string>()); out.set(ldt::StyleProp::Overflow); } }
             else if (k == "box-sizing") { if (v.isString()) { out.boxSizing = ldt::boxSizingFromString(v.as<std::string>()); out.set(ldt::StyleProp::BoxSizing); } }
             else if (k == "padding") {
@@ -460,7 +484,7 @@ static void applyPropertiesToStyleDelta(ldt::StyleDelta &out, const std::map<std
 // 判断属性名是否为布局相关属性
 static bool isLayoutProperty(std::string_view name) {
     static const std::unordered_set<std::string> layoutProps = {
-        "width", "height",
+        "width", "height", "min-width", "min-height", "max-width", "max-height",
         "margin", "padding", "border-width",
         "display",
         "flex-direction",
@@ -802,7 +826,8 @@ void StyleEngine::addDefaultStyleRule(const std::string& selector,
     rule.affectsPaint = true;
     for (const auto& kv : rule.properties) {
         const std::string& k = kv.first;
-        if (k == "width" || k == "height" || k == "margin" || k == "padding" || 
+        if (k == "width" || k == "height" || k == "min-width" || k == "min-height" ||
+            k == "max-width" || k == "max-height" || k == "margin" || k == "padding" ||
             k == "display" || k == "position" || k == "flex-direction" || 
             k.find("margin-") == 0 || k.find("padding-") == 0) {
             rule.affectsLayout = true;
@@ -876,6 +901,10 @@ static std::optional<ldt::StyleProp> attributeToStyleProp(std::string_view key) 
     if (key == "text-align") return ldt::StyleProp::TextAlign;
     if (key == "width") return ldt::StyleProp::Width;
     if (key == "height") return ldt::StyleProp::Height;
+    if (key == "min-width") return ldt::StyleProp::MinWidth;
+    if (key == "min-height") return ldt::StyleProp::MinHeight;
+    if (key == "max-width") return ldt::StyleProp::MaxWidth;
+    if (key == "max-height") return ldt::StyleProp::MaxHeight;
     if (key == "overflow") return ldt::StyleProp::Overflow;
     if (key == "box-sizing") return ldt::StyleProp::BoxSizing;
     if (key.rfind("padding", 0) == 0) return ldt::StyleProp::Padding;

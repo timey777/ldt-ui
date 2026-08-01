@@ -229,7 +229,12 @@ void ContainerControl::renderScrollChildrenCulled(DisplayList& dl, const ui::Rec
         if (!layerDisplayList_) layerDisplayList_ = std::make_shared<DisplayList>();
         layerDisplayList_->clear();
 
-        ui::Rect padded(clip.x - vw, clip.y - vh, clip.width + vw * 2, clip.height + vh * 2);
+        // Child bounds are in unscrolled content coordinates, while clip is in
+        // viewport coordinates. Move the culling window with the scroll offset.
+        ui::Rect padded(clip.x + getScrollX() - vw,
+                        clip.y + getScrollY() - vh,
+                        clip.width + vw * 2,
+                        clip.height + vh * 2);
 
         size_t first = 0, last = children_.size();
         if (children_.size() > 50) {

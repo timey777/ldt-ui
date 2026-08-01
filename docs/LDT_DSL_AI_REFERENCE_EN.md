@@ -194,8 +194,6 @@ These can be used in `@layout` blocks or inlined in node attributes.
 | **`flex` shorthand** | Cannot use `flex: 1` | Write `flex-grow` + `flex-shrink` separately |
 | **`order`** | Cannot change visual order | Reorder nodes in source |
 | **`align-content`** | Multi-line cross-axis distribution uncontrollable | Rows simply stack |
-| **`min-width/height`** | Not exposed as DSL properties | Internal clamp is fixed (0, FLT_MAX) |
-| **`max-width/height`** | Same as above | Same as above |
 | **`row-gap / column-gap`** | Only single `gap` | — |
 | **Percentage gap** | gap is absolute length only | — |
 | **`wrap-reverse`** | Enum exists but cross-axis may be non-standard | Prefer wrap |
@@ -242,7 +240,7 @@ Containers with `overflow: scroll` or `auto` provide scrollbars and `scrollWidth
 | 14 | display:none | `display: none` | `visible: false` or `display: none` |
 | 15 | rgba() colors | `rgba(0,0,0,0.5)` | `opacity: 0.5` + `background-color: #000000` |
 | 16 | CSS specificity | Cascade by selector weight | Rules override in declaration order (last wins) |
-| 17 | min/max-width/height | `min-width: 100px` | ❌ Not supported (internal clamp is 0~FLT_MAX) |
+| 17 | min/max-width/height | `min-width: 100px` | ✅ Lightweight support for `auto`, absolute lengths, and percentages |
 | 18 | Pseudo-elements | `::before`, `::after` | ❌ Not supported |
 | 19 | @media queries | `@media (max-width: 768px)` | ❌ Not supported |
 | 20 | transform/transition | `transform: rotate(45deg)` | ❌ Not supported |

@@ -246,6 +246,45 @@ static void applyBoxSizing(
 		contentH = std::max(0.0f, contentH);
 	}
 }
+
+static float resolveMinConstraint(const ldt::LayoutUnit& unit, float parentSize, bool parentIsDefinite) {
+	if (unit.isAuto()) return 0.0f;
+	float value = unit.resolve(parentSize, parentIsDefinite);
+	return isDefinite(value) ? std::max(0.0f, value) : 0.0f;
+}
+
+static float resolveMaxConstraint(const ldt::LayoutUnit& unit, float parentSize, bool parentIsDefinite) {
+	if (unit.isAuto()) return FLT_MAX;
+	float value = unit.resolve(parentSize, parentIsDefinite);
+	return isDefinite(value) ? std::max(0.0f, value) : FLT_MAX;
+}
+
+static void resolveSizeConstraints(ldt::ResolvedNode* node,
+	float parentContentWidth, float parentContentHeight,
+	bool parentWidthDefinite, bool parentHeightDefinite) {
+	const IPropertyProvider& prop = node->props();
+	auto& layout = node->layout;
+	const float parentW = isfinite(parentContentWidth) ? parentContentWidth : 0.0f;
+	const float parentH = isfinite(parentContentHeight) ? parentContentHeight : 0.0f;
+
+	layout.minWidth = resolveMinConstraint(prop.getMinWidth(), parentW, parentWidthDefinite);
+	layout.minHeight = resolveMinConstraint(prop.getMinHeight(), parentH, parentHeightDefinite);
+	layout.maxWidth = resolveMaxConstraint(prop.getMaxWidth(), parentW, parentWidthDefinite);
+	layout.maxHeight = resolveMaxConstraint(prop.getMaxHeight(), parentH, parentHeightDefinite);
+
+	if (prop.getBoxSizing() == ldt::BoxSizing::BorderBox) {
+		const auto& border = prop.getBorderWidth();
+		const float horizontalExtras = prop.getPadding().horizontal() + border.horizontal();
+		const float verticalExtras = prop.getPadding().vertical() + border.vertical();
+		layout.minWidth = std::max(0.0f, layout.minWidth - horizontalExtras);
+		layout.minHeight = std::max(0.0f, layout.minHeight - verticalExtras);
+		if (layout.maxWidth < FLT_MAX) layout.maxWidth = std::max(0.0f, layout.maxWidth - horizontalExtras);
+		if (layout.maxHeight < FLT_MAX) layout.maxHeight = std::max(0.0f, layout.maxHeight - verticalExtras);
+	}
+
+	if (layout.minWidth > layout.maxWidth) layout.maxWidth = layout.minWidth;
+	if (layout.minHeight > layout.maxHeight) layout.maxHeight = layout.minHeight;
+}
 static float computeAvailable(ldt::ResolvedNode* node, float requested, float parentContent, bool isWidth)
 {
 	float avail = (requested != ldt::AUTO_SENTINEL) ? requested : (isfinite(parentContent) ? parentContent : ldt::UNBOUNDED);
@@ -289,9 +328,13 @@ void BoxModelEngine::measurePhase(ldt::ResolvedNode* node, float parentContentWi
 	// resolve provided width/height strings into requested sizes
 	float requestedW = parseSize(prop->getWidth(), (isfinite(parentContentWidth) ? parentContentWidth : 0.0f), parentWidthDefinite);
 	float requestedH = parseSize(prop->getHeight(), (isfinite(parentContentHeight) ? parentContentHeight : 0.0f), parentHeightDefinite);
+	resolveSizeConstraints(node, parentContentWidth, parentContentHeight,
+		parentWidthDefinite, parentHeightDefinite);
 
 	// Handle box-sizing: border-box
 	applyBoxSizing(node, requestedW, requestedH);
+	if (isDefinite(requestedW)) requestedW = clampf(requestedW, node->layout.minWidth, node->layout.maxWidth);
+	if (isDefinite(requestedH)) requestedH = clampf(requestedH, node->layout.minHeight, node->layout.maxHeight);
 
 	// Determine if *this* node has definite size for children
 	bool childWidthDefinite = (requestedW != ldt::AUTO_SENTINEL);
@@ -300,6 +343,8 @@ void BoxModelEngine::measurePhase(ldt::ResolvedNode* node, float parentContentWi
 	// compute available space forwarded to children (availW/availH)
 	float availW = computeAvailable(node, requestedW, parentContentWidth, true);
 	float availH = computeAvailable(node, requestedH, parentContentHeight, false);
+	if (isfinite(availW)) availW = std::min(availW, node->layout.maxWidth);
+	if (isfinite(availH)) availH = std::min(availH, node->layout.maxHeight);
 
 	// Special handling for content (image/text) auto size
 	measureContent(node, requestedW, requestedH, availW);
@@ -662,4 +707,3 @@ void BoxModelEngine::calculateScrollState(ldt::ResolvedNode* node) {
     }
 
 }
-

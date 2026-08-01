@@ -19,6 +19,10 @@ public:
     // 几何属性 (目前从 finalStyle 获取)
     LayoutUnit getWidth() const override { return node->finalStyle.width; }
     LayoutUnit getHeight() const override { return node->finalStyle.height; }
+    LayoutUnit getMinWidth() const override { return node->finalStyle.minWidth; }
+    LayoutUnit getMinHeight() const override { return node->finalStyle.minHeight; }
+    LayoutUnit getMaxWidth() const override { return node->finalStyle.maxWidth; }
+    LayoutUnit getMaxHeight() const override { return node->finalStyle.maxHeight; }
     ui::Edges getPadding() const override { return node->finalStyle.padding; }
     ui::Edges getMargin() const override { return node->finalStyle.margin; }
     std::array<bool, 4> getMarginAuto() const override { return node->finalStyle.marginAuto; }
