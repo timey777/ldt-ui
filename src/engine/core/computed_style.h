@@ -38,7 +38,6 @@ enum class StyleProp : uint32_t {
     MaxWidth,
     MaxHeight,
     Overflow,
-    BoxSizing,
     Padding,
     Margin,
     MarginAuto,
@@ -71,7 +70,6 @@ struct ComputedStyle {
     LayoutUnit maxWidth = LayoutUnit::autoUnit();
     LayoutUnit maxHeight = LayoutUnit::autoUnit();
     Overflow overflow = Overflow::Auto;
-    BoxSizing boxSizing = BoxSizing::ContentBox;
     ui::Edges padding = {0, 0, 0, 0};
     ui::Edges margin = {0, 0, 0, 0};
     std::array<bool, 4> marginAuto = {false, false, false, false};

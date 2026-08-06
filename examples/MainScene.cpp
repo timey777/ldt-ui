@@ -79,7 +79,6 @@ bool ExampleMainScene::setup()
     const std::string defaultSrc = R"ui(
 @style {
     * {
-        box-sizing: border-box;
     }
     .screen {
         width: 100%;

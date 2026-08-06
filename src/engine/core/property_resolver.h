@@ -39,7 +39,6 @@ public:
     FontWeight getFontWeight() const override { return node->finalStyle.fontWeight; }
     TextAlign getTextAlign() const override { return node->finalStyle.textAlign; }
     Overflow getOverflow() const override { return node->finalStyle.overflow; }
-    BoxSizing getBoxSizing() const override { return node->finalStyle.boxSizing; }
 
     // 悬浮/绝对定位
     bool isOverlay() const override { return node->finalStyle.overlay; }

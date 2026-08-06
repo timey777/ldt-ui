@@ -47,7 +47,6 @@ static void mergeStyle(ldt::ComputedStyle& target, const ldt::StyleDelta& delta)
     if (delta.has(ldt::StyleProp::MaxWidth)) target.maxWidth = delta.maxWidth;
     if (delta.has(ldt::StyleProp::MaxHeight)) target.maxHeight = delta.maxHeight;
     if (delta.has(ldt::StyleProp::Overflow)) target.overflow = delta.overflow;
-    if (delta.has(ldt::StyleProp::BoxSizing)) target.boxSizing = delta.boxSizing;
     if (delta.has(ldt::StyleProp::Padding)) {
         target.padding = delta.padding;
     }
@@ -92,7 +91,6 @@ static void mergeStyleWithOrder(ldt::ComputedStyle& target,
         {StyleProp::MaxWidth, [](ldt::ComputedStyle& t, const ldt::StyleDeclaration& d) { t.maxWidth = d.maxWidth; }},
         {StyleProp::MaxHeight, [](ldt::ComputedStyle& t, const ldt::StyleDeclaration& d) { t.maxHeight = d.maxHeight; }},
         {StyleProp::Overflow, [](ldt::ComputedStyle& t, const ldt::StyleDeclaration& d) { t.overflow = d.overflow; }},
-        {StyleProp::BoxSizing, [](ldt::ComputedStyle& t, const ldt::StyleDeclaration& d) { t.boxSizing = d.boxSizing; }},
         {StyleProp::Padding, [](ldt::ComputedStyle& t, const ldt::StyleDeclaration& d) {
                 t.padding = d.padding;
             }},

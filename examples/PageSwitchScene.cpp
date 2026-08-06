@@ -114,7 +114,6 @@ std::string buildShellSource()
     return R"ui(
 @style {
     * {
-        box-sizing: border-box;
     }
     .screen {
         width: 100%;

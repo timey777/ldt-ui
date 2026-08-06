@@ -31,7 +31,7 @@ namespace ldt {
 		JustifyContent justifyContent = JustifyContent::FlexStart;
 		FlexWrap flexWrap = FlexWrap::NoWrap;
 		float flexGrow = 0;
-		float flexShrink = 1;
+		float flexShrink = 0;
 
 		// Grid 布局属性
 		std::string gridTemplateColumns = "";

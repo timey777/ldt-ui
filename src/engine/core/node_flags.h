@@ -75,7 +75,6 @@ enum class FlexDirection : uint8_t { Row, Column, RowReverse, ColumnReverse };
 enum class AlignItems : uint8_t { Stretch, FlexStart, FlexEnd, Center, Baseline };
 enum class JustifyContent : uint8_t { FlexStart, FlexEnd, Center, SpaceBetween, SpaceAround, SpaceEvenly };
 enum class FlexWrap : uint8_t { NoWrap, Wrap, WrapReverse };
-enum class BoxSizing : uint8_t { ContentBox, BorderBox };
 enum class Overflow : uint8_t { Visible, Hidden, Scroll, Auto };
 enum class Position : uint8_t { Static, Relative, Absolute, Fixed };
 
@@ -95,7 +94,6 @@ enum class TextAlign : uint8_t {
 FontWeight fontWeightFromString(const std::string& s);
 TextAlign textAlignFromString(const std::string& s);
 Overflow overflowFromString(const std::string& s);
-BoxSizing boxSizingFromString(const std::string& s);
 FormattingContext displayStringToEnum(const std::string& d);
 Position positionStringToEnum(const std::string& s);
 FlexDirection flexDirectionStringToEnum(const std::string& s);

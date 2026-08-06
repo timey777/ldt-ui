@@ -130,7 +130,6 @@ type(attr) { child1, child2, child3(id="x") }
 | `padding-top/right/bottom/left` | px | `0` | 否 | 单边内边距 |
 | `margin` | Edges | `0` | 否 | 四边外边距，支持 `auto` |
 | `margin-top/right/bottom/left` | px | `0` | 否 | 单边外边距，支持 `auto` |
-| `box-sizing` | keyword | `content-box` | 否 | `content-box` / `border-box` |
 | `overflow` | keyword | `auto` | 否 | `visible` / `hidden` / `scroll` / `auto` |
 
 ### 5.5 视觉效果
@@ -158,7 +157,7 @@ type(attr) { child1, child2, child3(id="x") }
 | `justify-content` | keyword | `flex-start` | `flex-start` / `flex-end` / `center` / `space-between` / `space-around` / `space-evenly` |
 | `flex-wrap` | keyword | `nowrap` | `nowrap` / `wrap` / `wrap-reverse` |
 | `flex-grow` | float | `0` | 弹性增长比例 |
-| `flex-shrink` | float | `1` | 弹性收缩比例 |
+| `flex-shrink` | float | `0` | 弹性收缩比例；仅显式启用时参与收缩 |
 | `gap` | px | `0` | 子元素间距 |
 | `grid-template-columns` | string | `""` | 网格列模板 |
 | `grid-template-rows` | string | `""` | 网格行模板 |
@@ -175,13 +174,13 @@ type(attr) { child1, child2, child3(id="x") }
 | `flex-wrap` | ✅ wrap/nowrap | wrap 换行正常；wrap-reverse 枚举存在但行堆叠顺序可能非标准 |
 | `justify-content` | ✅ 全部 6 值 | flex-start / flex-end / center / space-between / space-around / space-evenly |
 | `flex-grow` | ✅ | 按比例分配剩余空间，分配后触发子元素 remeasure |
-| `flex-shrink` | ✅ | 按尺寸×shrink 加权收缩，收缩后触发 remeasure |
+| `flex-shrink` | ✅ | 按 shrink 值直接分配收缩量，达到 min-size 后冻结并重新分配 |
 | `align-items: stretch` | ✅ | auto 尺寸子元素拉伸到行高/行宽 |
 | `align-items: center` | ✅ | 交叉轴居中 |
 | `align-items: flex-end` | ✅ | 交叉轴末尾对齐 |
 | `align-items: flex-start` | ✅ | 交叉轴起始（默认 fallthrough） |
 | `gap` | ✅ | 子元素间距，参与换行和空间分配 |
-| 收缩下限保护 | ✅ | 列方向 auto-height 子元素 shrink 时有 content-based 最小高度；父容器 overflow:scroll/hidden 时忽略保护 |
+| 收缩下限 | ✅ | 只使用显式 min-size；未设置时为 0，不计算 content-based 隐式下限 |
 | 嵌套 remeasure | ✅ | grow/shrink/stretch 后自动重新测量后代 |
 
 ### 7.2 ⚠️ 未实现 / 非标准行为
@@ -203,6 +202,8 @@ type(attr) { child1, child2, child3(id="x") }
 
 ## 8. 布局算法行为
 
+确定性规则：`width`/`height` 是 border-box 期望尺寸；min-size 默认 0，max-size 默认不限制；grow 和 shrink 相互独立；只有显式 `flex-shrink > 0` 的元素参与收缩；收缩量直接按 shrink 值分配，达到 min-size 后冻结并重新分配；无法继续收缩的空间成为 overflow。
+
 | 布局模式 | display 值 | 行为 |
 |---------|-----------|------|
 | **Block** | `block`（默认） | 垂直堆叠。子元素宽度默认撑满父容器，高度由内容决定 |
@@ -213,8 +214,7 @@ type(attr) { child1, child2, child3(id="x") }
 
 盒模型（由外向内）：**margin → border → padding → content**
 
-`box-sizing: border-box` 时，`width`/`height` 包含 padding 和 border。
-`box-sizing: content-box`（默认）时，`width`/`height` 仅指 content 区域。
+`width`/`height`、`min-*` 和 `max-*` 始终表示 border box，包含 padding 和 border。
 
 `overflow: scroll` 或 `auto` 的容器在内容溢出时提供滚动条和 `scrollWidth`/`scrollHeight`。
 
@@ -397,31 +397,16 @@ panel(class="scroll-box") {
 > 需要裁剪不显示滚动条：显式写 `overflow: hidden`
 > 需要内容自由溢出：显式写 `overflow: visible`
 
-### 2. ⭐ `height: 100%` + `padding` 必须配 `box-sizing: border-box`
+### 2. ⭐ LDT 始终使用 border-box
 
-这是 DSL 盒模型与标准 CSS 的**核心差异**。原因如下：
-
-**CSS 标准盒模型（`content-box`）**：
-```
-height: 100%   → content 高度 = 父容器 content 高度的 100%
-+ padding      → border-box 高度 = 100% + padding（超出父容器）
-```
-
-在标准 CSS 中，`height: 100%` 的子元素如果有 padding，会**撑破父容器**。但 Web 浏览器因 `overflow: visible` 默认行为，内容溢出通常仅视觉覆盖、不触发滚动条。
-
-**在 LDT DSL 中**：
-- `overflow` 默认 `auto` → 子元素一旦撑破父容器，**立即触发滚动条**
-- 因此 `height: 100%` + `padding` 的组合几乎必然导致父容器出现滚动条
+`width`、`height`、`min-*` 和 `max-*` 都包含 padding 与 border，不支持切换成 content-box。
 
 ```ldt
-/* ❌ 默认 content-box：border-box = 100% + 24px×2 → 撑破父容器，触发滚动条 */
+/* border box 高度精确等于父容器高度，padding 包含在其中 */
 .card { height: 100%; padding: 24px; }
-
-/* ✅ border-box：height 包含 padding，border-box 精确 = 100%，不溢出 */
-.card { height: 100%; padding: 24px; box-sizing: border-box; }
 ```
 
-**结论**：在 DSL 中，只要用 `height: 100%`（或 `width: 100%`）的同时设了 `padding`，**一律加 `box-sizing: border-box`**，否则 100% + padding 必然溢出父级。
+因此 `height: 100%` 与 padding 可以直接组合，不需要额外的 `box-sizing` 属性。
 
 ### 3. 固定尺寸容器需留意内容是否超出
 
@@ -461,7 +446,7 @@ background-image: "images/cover.png";
 ```
 Root (800×600)
   └── Container (100% × 100%)        = 800×600
-       └── Card (height:100%, box-sizing:border-box) = 360×600
+       └── Card (height:100%) = 360×600
             └── content-box = 600 - 32padding = 568px
                  └── 子元素总高约 572px → 超出 4px → 出现滚动条
 ```

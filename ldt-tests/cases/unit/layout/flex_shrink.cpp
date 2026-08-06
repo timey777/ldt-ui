@@ -29,14 +29,67 @@ TEST_CASE("layout/flex_shrink") {
     EXPECT_NOT_NULL(itemA);
     EXPECT_NOT_NULL(itemB);
 
-    // Both should be narrower than their original 200
+    // Shrink factors are direct weights, so B takes twice A's reduction.
     float aW = itemA->layout.getBorderBox().width;
     float bW = itemB->layout.getBorderBox().width;
-    EXPECT_LT(aW, 200.0f);
-    EXPECT_LT(bW, 200.0f);
+    EXPECT_FLOAT_EQ(aW, 166.67f, 0.5f);
+    EXPECT_FLOAT_EQ(bW, 133.33f, 0.5f);
+}
 
-    // B has higher shrink factor → narrower than A
-    EXPECT_LT(bW, aW);
+TEST_CASE("layout/flex_items_do_not_shrink_by_default") {
+    TestEnv env;
+    std::string source =
+        "@style {"
+        " .container { width:300; height:100; overflow:auto; }"
+        " .item { width:200; height:50; }"
+        "}"
+        "@layout { .container { display:flex; flex-direction:row; } }"
+        "panel:container(class=\"container\") {"
+        " panel:itemA(class=\"item\")"
+        " panel:itemB(class=\"item\")"
+        "}";
+
+    env.load(source);
+    auto* container = env.findById("container");
+    auto* itemA = env.findById("itemA");
+    auto* itemB = env.findById("itemB");
+    EXPECT_NOT_NULL(container);
+    EXPECT_NOT_NULL(itemA);
+    EXPECT_NOT_NULL(itemB);
+    EXPECT_FLOAT_EQ(itemA->layout.computedWidth, 200.0f, 0.5f);
+    EXPECT_FLOAT_EQ(itemB->layout.computedWidth, 200.0f, 0.5f);
+    EXPECT_FLOAT_EQ(container->layout.scroll.scrollWidth, 400.0f, 0.5f);
+}
+
+TEST_CASE("layout/flex_fixed_chrome_preserves_size") {
+    TestEnv env;
+    std::string source =
+        "@style {"
+        " .app { width:800; height:600; overflow:hidden; }"
+        " .toolbar { width:800; height:48; }"
+        " .content { width:800; height:715; overflow:auto; }"
+        " .status { width:800; height:28; }"
+        "}"
+        "@layout {"
+        " .app { display:flex; flex-direction:column; }"
+        " .content { flex-grow:1; flex-shrink:1; }"
+        "}"
+        "panel:app(class=\"app\") {"
+        " panel:toolbar(class=\"toolbar\")"
+        " panel:content(class=\"content\")"
+        " panel:status(class=\"status\")"
+        "}";
+
+    env.load(source);
+    auto* toolbar = env.findById("toolbar");
+    auto* content = env.findById("content");
+    auto* status = env.findById("status");
+    EXPECT_NOT_NULL(toolbar);
+    EXPECT_NOT_NULL(content);
+    EXPECT_NOT_NULL(status);
+    EXPECT_FLOAT_EQ(toolbar->layout.computedHeight, 48.0f, 0.5f);
+    EXPECT_FLOAT_EQ(content->layout.computedHeight, 524.0f, 0.5f);
+    EXPECT_FLOAT_EQ(status->layout.computedHeight, 28.0f, 0.5f);
 }
 
 TEST_CASE("layout/flex_shrink_redistributes_after_min_width") {

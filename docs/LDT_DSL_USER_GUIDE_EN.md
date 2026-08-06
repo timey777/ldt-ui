@@ -230,16 +230,15 @@ The following properties support **inheritance**: when a child node does not set
 | `margin-right` | Right margin | Value / `auto` | `margin-right: 20px` |
 | `margin-bottom` | Bottom margin | Value / `auto` | `margin-bottom: auto` |
 | `margin-left` | Left margin | Value / `auto` | `margin-left: 20px` |
-| `box-sizing` | Box sizing mode | `content-box`, `border-box` | `box-sizing: border-box` |
 | `overflow` | Overflow handling | `visible`, `hidden`, `scroll`, `auto` | `overflow: scroll` |
 
 `margin` supports `auto` for horizontal centering (set both left and right to `auto`).
 
-`box-sizing: border-box` means `width`/`height` include padding and border; `content-box` (default) means content area only.
+`width`/`height`, `min-*`, and `max-*` always describe the border box, including padding and border.
 
 `overflow: scroll` or `auto` shows scrollbars when content exceeds the container.
 
-Size constraints are intentionally lightweight and accept only `auto`, absolute lengths, and percentages. `max-* : auto` means unbounded. In a column flex container, an auto-height child does not shrink below its content height by default; set `min-height: 0` to let it shrink into the parent's remaining space and let `overflow` handle its content.
+Size constraints accept `auto`, absolute lengths, and percentages. Unset minimums are zero and unset maximums are unbounded. There is no implicit content-based minimum size.
 
 ### 6.5 Visual Effects
 
@@ -281,7 +280,7 @@ When `display` is set to `flex`, the following properties control flex layout be
 | `justify-content` | Main-axis alignment | `flex-start`, `flex-end`, `center`, `space-between`, `space-around`, `space-evenly` | `flex-start` |
 | `flex-wrap` | Wrapping | `nowrap`, `wrap`, `wrap-reverse` | `nowrap` |
 | `flex-grow` | Flex grow ratio | Number | `0` |
-| `flex-shrink` | Flex shrink ratio | Number | `1` |
+| `flex-shrink` | Flex shrink ratio | Number | `0` |
 | `gap` | Child spacing | Value + unit | `0` |
 
 ### 7.2 Grid Layout Properties
@@ -296,6 +295,8 @@ When `display` is set to `grid`:
 ---
 
 ## 8. Layout Model
+
+See [LAYOUT_DESIGN_EN.md](LAYOUT_DESIGN_EN.md) for the complete deterministic sizing, constraint, flex, and overflow rules.
 
 ### 8.1 Block Layout (Default)
 
@@ -337,8 +338,8 @@ Suitable for page structure, card lists, and other top-to-bottom arrangements.
 
 **Flex Grow & Shrink:**
 - `flex-grow`: Flex grow ratio. When container has extra space, distributes proportionally. Default 0 (no grow)
-- `flex-shrink`: Flex shrink ratio. When container lacks space, shrinks weighted by `current size × shrink`. Default 1 (allow shrink)
-- Shrink protection: In column direction, children without fixed height won't shrink below content minimum height
+- `flex-shrink`: Flex shrink ratio. When space is insufficient, the deficit is distributed directly by shrink value. Default 0 (no shrink)
+- Only items with `flex-shrink > 0` participate; an item freezes at its explicit minimum and remaining deficit is redistributed
 - After grow/shrink, affected children and descendants are automatically re-measured
 
 **Spacing:**
@@ -386,8 +387,7 @@ Each widget is a rectangular box with four layers from outside to inside:
 └─────────────────────────────┘
 ```
 
-- `box-sizing: content-box` (default): `width`/`height` controls only the content area
-- `box-sizing: border-box`: `width`/`height` includes padding and border (more intuitive)
+- `width`/`height` always control the border box, including padding and border
 
 ---
 
@@ -530,9 +530,6 @@ panel(class="list-container") {
 
 ```ldt
 @style {
-    * {
-        box-sizing: border-box;
-    }
     .app {
         width: 100%;
         height: 100%;

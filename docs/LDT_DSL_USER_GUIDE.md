@@ -230,16 +230,15 @@ LDT DSL 支持以下五种单位：
 | `margin-right` | 右外边距 | 数值/`auto` | `margin-right: 20px` |
 | `margin-bottom` | 下外边距 | 数值/`auto` | `margin-bottom: auto` |
 | `margin-left` | 左外边距 | 数值/`auto` | `margin-left: 20px` |
-| `box-sizing` | 尺寸计算模式 | `content-box`, `border-box` | `box-sizing: border-box` |
 | `overflow` | 溢出处理 | `visible`, `hidden`, `scroll`, `auto` | `overflow: scroll` |
 
 `margin` 支持 `auto` 值，可用于水平居中（左右均设为 `auto`）。
 
-`box-sizing: border-box` 表示 `width`/`height` 包含 padding 和 border；`content-box`（默认）表示仅包含内容区。
+`width`/`height`、`min-*` 和 `max-*` 始终表示 border box，已经包含 padding 和 border。
 
 `overflow: scroll` 或 `auto` 会在内容超出容器时显示滚动条。
 
-尺寸约束是轻量实现，仅支持 `auto`、绝对长度和百分比。`max-* : auto` 表示不限制；column flex 中，auto 高度子项默认不会收缩到内容高度以下，显式设置 `min-height: 0` 可允许其收缩到父容器分配的剩余空间，并由 `overflow` 处理内部内容。
+尺寸约束支持 `auto`、绝对长度和百分比。未设置的 min-size 为 0，未设置的 max-size 不限制；不存在基于内容的隐式最小尺寸。
 
 ### 6.5 视觉效果
 
@@ -281,7 +280,7 @@ LDT DSL 支持以下五种单位：
 | `justify-content` | 主轴对齐 | `flex-start`, `flex-end`, `center`, `space-between`, `space-around`, `space-evenly` | `flex-start` |
 | `flex-wrap` | 是否换行 | `nowrap`, `wrap`, `wrap-reverse` | `nowrap` |
 | `flex-grow` | 弹性增长比例 | 数值 | `0` |
-| `flex-shrink` | 弹性收缩比例 | 数值 | `1` |
+| `flex-shrink` | 弹性收缩比例 | 数值 | `0` |
 | `gap` | 子元素间距 | 数值+单位 | `0` |
 
 ### 7.2 Grid 布局属性
@@ -296,6 +295,8 @@ LDT DSL 支持以下五种单位：
 ---
 
 ## 8. 布局模型
+
+尺寸、边界、伸缩与溢出的完整确定性规则见 [LAYOUT_DESIGN.md](LAYOUT_DESIGN.md)。
 
 ### 8.1 Block 布局（默认）
 
@@ -337,8 +338,8 @@ LDT DSL 支持以下五种单位：
 
 **弹性伸缩：**
 - `flex-grow`：弹性增长比例。容器有剩余空间时，按 grow 值比例分配给子元素。默认 0（不增长）
-- `flex-shrink`：弹性收缩比例。容器空间不足时，按「当前尺寸 × shrink」加权收缩。默认 1（允许收缩）
-- 收缩保护机制：列方向下未设固定高度的子元素不会收缩到内容最小高度以下，防止文字被截断
+- `flex-shrink`：弹性收缩比例。容器空间不足时，按 shrink 值直接分配收缩量。默认 0（不收缩）
+- 只有显式设置 `flex-shrink > 0` 的元素参与收缩；达到显式 min-size 后冻结并重新分配剩余收缩量
 - 伸缩发生后自动重新测量受影响的子元素及其后代
 
 **间距：**
@@ -388,8 +389,7 @@ LDT DSL 支持以下五种单位：
 └─────────────────────────────┘
 ```
 
-- `box-sizing: content-box`（默认）：`width`/`height` 只控制 content 区域
-- `box-sizing: border-box`：`width`/`height` 包含 padding 和 border，更直观
+- `width`/`height` 始终控制 border box，padding 和 border 包含在声明尺寸内
 
 ---
 
@@ -532,9 +532,6 @@ panel(class="list-container") {
 
 ```ldt
 @style {
-    * {
-        box-sizing: border-box;
-    }
     .app {
         width: 100%;
         height: 100%;

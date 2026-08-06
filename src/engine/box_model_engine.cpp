@@ -224,15 +224,12 @@ void BoxModelEngine::measureContent(ldt::ResolvedNode* node, float& requestedW, 
 	}
 }
 
-static void applyBoxSizing(
+static void convertBorderBoxToContentSize(
 	ldt::ResolvedNode* node,
 	float& contentW,
 	float& contentH
 ) {
 	const IPropertyProvider* prop = &node->props();
-	if (prop->getBoxSizing() != ldt::BoxSizing::BorderBox)
-		return;
-
 	const auto& bw = prop->getBorderWidth();
 	const auto& l = node->layout;
 
@@ -272,15 +269,13 @@ static void resolveSizeConstraints(ldt::ResolvedNode* node,
 	layout.maxWidth = resolveMaxConstraint(prop.getMaxWidth(), parentW, parentWidthDefinite);
 	layout.maxHeight = resolveMaxConstraint(prop.getMaxHeight(), parentH, parentHeightDefinite);
 
-	if (prop.getBoxSizing() == ldt::BoxSizing::BorderBox) {
-		const auto& border = prop.getBorderWidth();
-		const float horizontalExtras = prop.getPadding().horizontal() + border.horizontal();
-		const float verticalExtras = prop.getPadding().vertical() + border.vertical();
-		layout.minWidth = std::max(0.0f, layout.minWidth - horizontalExtras);
-		layout.minHeight = std::max(0.0f, layout.minHeight - verticalExtras);
-		if (layout.maxWidth < FLT_MAX) layout.maxWidth = std::max(0.0f, layout.maxWidth - horizontalExtras);
-		if (layout.maxHeight < FLT_MAX) layout.maxHeight = std::max(0.0f, layout.maxHeight - verticalExtras);
-	}
+	const auto& border = prop.getBorderWidth();
+	const float horizontalExtras = prop.getPadding().horizontal() + border.horizontal();
+	const float verticalExtras = prop.getPadding().vertical() + border.vertical();
+	layout.minWidth = std::max(0.0f, layout.minWidth - horizontalExtras);
+	layout.minHeight = std::max(0.0f, layout.minHeight - verticalExtras);
+	if (layout.maxWidth < FLT_MAX) layout.maxWidth = std::max(0.0f, layout.maxWidth - horizontalExtras);
+	if (layout.maxHeight < FLT_MAX) layout.maxHeight = std::max(0.0f, layout.maxHeight - verticalExtras);
 
 	if (layout.minWidth > layout.maxWidth) layout.maxWidth = layout.minWidth;
 	if (layout.minHeight > layout.maxHeight) layout.maxHeight = layout.minHeight;
@@ -331,8 +326,8 @@ void BoxModelEngine::measurePhase(ldt::ResolvedNode* node, float parentContentWi
 	resolveSizeConstraints(node, parentContentWidth, parentContentHeight,
 		parentWidthDefinite, parentHeightDefinite);
 
-	// Handle box-sizing: border-box
-	applyBoxSizing(node, requestedW, requestedH);
+	// width/height always describe the border box; layout stores content size.
+	convertBorderBoxToContentSize(node, requestedW, requestedH);
 	if (isDefinite(requestedW)) requestedW = clampf(requestedW, node->layout.minWidth, node->layout.maxWidth);
 	if (isDefinite(requestedH)) requestedH = clampf(requestedH, node->layout.minHeight, node->layout.maxHeight);
 

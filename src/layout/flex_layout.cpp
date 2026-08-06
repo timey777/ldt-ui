@@ -3,8 +3,6 @@
 #include <cmath>
 #include <limits>
 #include <vector>
-#include <string>
-#include <cctype>
 #include "engine/core/resolved_node.h"
 #include "engine/core/property_resolver.h"
 #include "misc/float_utils.h"
@@ -35,20 +33,8 @@ float FlexLayout::getCrossSize(const ldt::ResolvedNode* node, bool isRow) {
     return isRow ? node->layout.getMarginBox().height : node->layout.getMarginBox().width;
 }
 
-static float getFlexMinMainContentSize(const ldt::ResolvedNode* node,
-                                       const IPropertyProvider& props,
-                                       bool isRow) {
-    const LayoutUnit minSize = isRow ? props.getMinWidth() : props.getMinHeight();
-    if (!minSize.isAuto()) {
-        return isRow ? node->layout.minWidth : node->layout.minHeight;
-    }
-
-    // Preserve the existing column behavior: auto-height content is its own
-    // shrink floor unless min-height explicitly opts into a smaller value.
-    if (!isRow && props.getHeight().isAuto()) {
-        return node->layout.computedHeight;
-    }
-    return 0.0f;
+static float getFlexMinMainContentSize(const ldt::ResolvedNode* node, bool isRow) {
+    return isRow ? node->layout.minWidth : node->layout.minHeight;
 }
 
 static float getFlexMaxMainContentSize(const ldt::ResolvedNode* node, bool isRow) {
@@ -237,39 +223,29 @@ void FlexLayout::layoutFlex(BoxModelEngine* engine, ldt::ResolvedNode* node,
         }
 
         if (freeMain < 0.0f) {
-            std::vector<float> shrinkBases;
-            shrinkBases.reserve(line.childIndices.size());
-            for (size_t idx : line.childIndices) {
-                auto& child = node->getFlowChildren()[idx];
-                shrinkBases.push_back(getMainSize(child, isRow));
-            }
-
             for (size_t pass = 0; pass < line.childIndices.size() && freeMain < 0.0f; ++pass) {
-                float totalScaledShrink = 0.0f;
-                for (size_t i = 0; i < line.childIndices.size(); ++i) {
-                    auto& child = node->getFlowChildren()[line.childIndices[i]];
-                    const IPropertyProvider& childRes = child->props();
-                    const float shrink = std::max(0.0f, childRes.getFlexShrink());
-                    const float minimum = getFlexMinMainContentSize(child, childRes, isRow);
+                float totalShrink = 0.0f;
+                for (size_t idx : line.childIndices) {
+                    auto& child = node->getFlowChildren()[idx];
+                    const float shrink = std::max(0.0f, child->props().getFlexShrink());
+                    const float minimum = getFlexMinMainContentSize(child, isRow);
                     if (shrink > 0.0f &&
                         ldt::floatGreater(getComputedMainContentSize(child, isRow), minimum)) {
-                        totalScaledShrink += shrinkBases[i] * shrink;
+                        totalShrink += shrink;
                     }
                 }
-                if (totalScaledShrink <= 0.0f) break;
+                if (totalShrink <= 0.0f) break;
 
                 const float overflowMain = -freeMain;
                 float reducedSpaceTotal = 0.0f;
-                for (size_t i = 0; i < line.childIndices.size(); ++i) {
-                    const size_t idx = line.childIndices[i];
+                for (size_t idx : line.childIndices) {
                     auto& child = node->getFlowChildren()[idx];
-                    const IPropertyProvider& childRes = child->props();
-                    const float shrink = std::max(0.0f, childRes.getFlexShrink());
+                    const float shrink = std::max(0.0f, child->props().getFlexShrink());
                     const float current = getComputedMainContentSize(child, isRow);
-                    const float minimum = getFlexMinMainContentSize(child, childRes, isRow);
+                    const float minimum = getFlexMinMainContentSize(child, isRow);
                     if (shrink <= 0.0f || !ldt::floatGreater(current, minimum)) continue;
 
-                    const float reduction = overflowMain * ((shrinkBases[i] * shrink) / totalScaledShrink);
+                    const float reduction = overflowMain * (shrink / totalShrink);
                     const float next = std::max(minimum, current - reduction);
                     const float reduced = current - next;
                     if (reduced <= 0.0f) continue;

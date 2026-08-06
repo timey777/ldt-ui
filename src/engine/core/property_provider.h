@@ -39,7 +39,6 @@ namespace ldt {
         virtual FontWeight getFontWeight() const = 0;
         virtual TextAlign getTextAlign() const = 0;
         virtual Overflow getOverflow() const = 0;
-        virtual BoxSizing getBoxSizing() const = 0;
 
         // --- 悬浮/绝对定位属性 ---
         virtual bool isOverlay() const = 0;

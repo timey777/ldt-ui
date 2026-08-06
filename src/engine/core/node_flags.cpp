@@ -136,11 +136,6 @@ Overflow overflowFromString(const std::string& s) {
     return Overflow::Visible;
 }
 
-BoxSizing boxSizingFromString(const std::string& s) {
-    if (s == "border-box") return BoxSizing::BorderBox;
-    return BoxSizing::ContentBox;
-}
-
 FormattingContext displayStringToEnum(const std::string& d) {
     if (d == "flex") return FormattingContext::Flex;
     if (d == "grid") return FormattingContext::Grid;

@@ -19,7 +19,7 @@ std::string makeOverflowLayout(const char* panelSize) {
         " .v-box { display:flex; flex-direction:column; align-items:center; justify-content:center; }"
         " .title { flex-shrink:0; }"
         " .btn { flex-shrink:0; }"
-        " .pnl { flex-grow:1; }"
+        " .pnl { flex-grow:1; flex-shrink:1; }"
         "}"
         "panel:vbox(class=\"v-box\") {"
         " text:title(class=\"title\", value=\"Hello LDT\"),"
@@ -46,22 +46,9 @@ void collectMaxTextBottom(const ldt::DisplayList& list, float& maxBottom) {
 
 } // namespace
 
-TEST_CASE("layout/flex_auto_min_height_preserves_content_size") {
+TEST_CASE("layout/flex_shrink_uses_remaining_height") {
     TestEnv env;
     env.load(makeOverflowLayout(""), 800.0f, 600.0f);
-
-    auto* vbox = env.findById("vbox");
-    auto* panel = env.findById("pnl");
-    EXPECT_NOT_NULL(vbox);
-    EXPECT_NOT_NULL(panel);
-
-    EXPECT_GT(panel->layout.computedHeight, vbox->layout.computedHeight);
-    EXPECT_GT(vbox->layout.scroll.scrollHeight, vbox->layout.viewportHeight);
-}
-
-TEST_CASE("layout/flex_min_height_zero_uses_remaining_height") {
-    TestEnv env;
-    env.load(makeOverflowLayout(" min-height:0;"), 800.0f, 600.0f);
 
     auto* vbox = env.findById("vbox");
     auto* panel = env.findById("pnl");

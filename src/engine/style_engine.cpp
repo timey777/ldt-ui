@@ -305,7 +305,6 @@ static void applyPropertiesToComputedStyle(ldt::ComputedStyle &out, const std::m
                 (void)applyLayoutUnitField(out.maxHeight, v);
             }
             else if (k == "overflow") { if (v.isString()) out.overflow = ldt::overflowFromString(v.as<std::string>()); }
-            else if (k == "box-sizing") { if (v.isString()) out.boxSizing = ldt::boxSizingFromString(v.as<std::string>()); }
             else if (k == "padding") {
                 (void)applyEdgeGroup(out.padding, v);
             }
@@ -424,7 +423,6 @@ static void applyPropertiesToStyleDelta(ldt::StyleDelta &out, const std::map<std
                 if (applyLayoutUnitField(out.maxHeight, v)) out.set(ldt::StyleProp::MaxHeight);
             }
             else if (k == "overflow") { if (v.isString()) { out.overflow = ldt::overflowFromString(v.as<std::string>()); out.set(ldt::StyleProp::Overflow); } }
-            else if (k == "box-sizing") { if (v.isString()) { out.boxSizing = ldt::boxSizingFromString(v.as<std::string>()); out.set(ldt::StyleProp::BoxSizing); } }
             else if (k == "padding") {
                 if (applyEdgeGroup(out.padding, v)) {
                     out.set(ldt::StyleProp::Padding);
@@ -906,7 +904,6 @@ static std::optional<ldt::StyleProp> attributeToStyleProp(std::string_view key) 
     if (key == "max-width") return ldt::StyleProp::MaxWidth;
     if (key == "max-height") return ldt::StyleProp::MaxHeight;
     if (key == "overflow") return ldt::StyleProp::Overflow;
-    if (key == "box-sizing") return ldt::StyleProp::BoxSizing;
     if (key.rfind("padding", 0) == 0) return ldt::StyleProp::Padding;
     if (key.rfind("margin", 0) == 0) return ldt::StyleProp::Margin;
     if (key.rfind("border-width", 0) == 0 || key == "border") return ldt::StyleProp::BorderWidth;

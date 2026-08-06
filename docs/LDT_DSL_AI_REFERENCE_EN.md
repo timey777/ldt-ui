@@ -130,7 +130,6 @@ type(attr) { child1, child2, child3(id="x") }
 | `padding-top/right/bottom/left` | px | `0` | No | Per-side padding |
 | `margin` | Edges | `0` | No | All four sides margin; supports `auto` |
 | `margin-top/right/bottom/left` | px | `0` | No | Per-side margin; supports `auto` |
-| `box-sizing` | keyword | `content-box` | No | `content-box` / `border-box` |
 | `overflow` | keyword | `auto` | No | `visible` / `hidden` / `scroll` / `auto` |
 
 ### 5.5 Visual Effects
@@ -158,7 +157,7 @@ These can be used in `@layout` blocks or inlined in node attributes.
 | `justify-content` | keyword | `flex-start` | `flex-start` / `flex-end` / `center` / `space-between` / `space-around` / `space-evenly` |
 | `flex-wrap` | keyword | `nowrap` | `nowrap` / `wrap` / `wrap-reverse` |
 | `flex-grow` | float | `0` | Flex grow ratio |
-| `flex-shrink` | float | `1` | Flex shrink ratio |
+| `flex-shrink` | float | `0` | Flex shrink ratio; participates only when explicitly enabled |
 | `gap` | px | `0` | Child spacing |
 | `grid-template-columns` | string | `""` | Grid column template |
 | `grid-template-rows` | string | `""` | Grid row template |
@@ -175,13 +174,13 @@ These can be used in `@layout` blocks or inlined in node attributes.
 | `flex-wrap` | ✅ wrap/nowrap | Wrap works; wrap-reverse enum exists but row stacking order may be non-standard |
 | `justify-content` | ✅ All 6 values | flex-start / flex-end / center / space-between / space-around / space-evenly |
 | `flex-grow` | ✅ | Proportional distribution of remaining space; triggers child remeasure after allocation |
-| `flex-shrink` | ✅ | Weighted shrink by size × shrink; triggers remeasure after shrink |
+| `flex-shrink` | ✅ | Direct shrink-value allocation; freezes at min-size and redistributes the remainder |
 | `align-items: stretch` | ✅ | Auto-sized children stretched to row height/width |
 | `align-items: center` | ✅ | Cross-axis centering |
 | `align-items: flex-end` | ✅ | Cross-axis end alignment |
 | `align-items: flex-start` | ✅ | Cross-axis start (default fallthrough) |
 | `gap` | ✅ | Child spacing; participates in wrap and space allocation |
-| Shrink floor protection | ✅ | Column-direction auto-height children have content-based minimum height during shrink; ignored when parent has overflow:scroll/hidden |
+| Shrink floor | ✅ | Uses only explicit min-size; the default is zero with no content-based implicit floor |
 | Nested remeasure | ✅ | Auto-remeasure descendants after grow/shrink/stretch |
 
 ### 7.2 ⚠️ Not Implemented / Non-Standard Behavior
@@ -203,6 +202,8 @@ These can be used in `@layout` blocks or inlined in node attributes.
 
 ## 8. Layout Algorithm Behavior
 
+Deterministic rules: `width`/`height` are border-box preferred sizes; min-size defaults to zero and max-size is unbounded; grow and shrink are independent; only items with explicit `flex-shrink > 0` may shrink; deficit is distributed directly by shrink value, freezing items at min-size and redistributing the remainder; unresolved deficit becomes overflow.
+
 | Layout Mode | display value | Behavior |
 |------------|---------------|----------|
 | **Block** | `block` (default) | Vertically stacked. Children fill parent width by default; height is content-driven |
@@ -213,8 +214,7 @@ These can be used in `@layout` blocks or inlined in node attributes.
 
 Box model (outside → inside): **margin → border → padding → content**
 
-With `box-sizing: border-box`, `width`/`height` include padding and border.
-With `box-sizing: content-box` (default), `width`/`height` refer only to the content area.
+`width`/`height`, `min-*`, and `max-*` always describe the border box, including padding and border.
 
 Containers with `overflow: scroll` or `auto` provide scrollbars and `scrollWidth`/`scrollHeight` when content overflows.
 
@@ -397,31 +397,16 @@ In standard CSS, block elements default to `overflow: visible` (content overflow
 > To clip without scrollbar: explicitly write `overflow: hidden`
 > To allow free overflow: explicitly write `overflow: visible`
 
-### 11.2 ⭐ `height: 100%` + `padding` requires `box-sizing: border-box`
+### 11.2 ⭐ LDT always uses border-box sizing
 
-This is a **core design difference** between the DSL box model and standard CSS. Here's why:
-
-**Standard CSS content-box model:**
-```
-height: 100%   → content height = 100% of parent's content height
-+ padding      → border-box height = 100% + padding (overflows parent)
-```
-
-In standard CSS, a child with `height: 100%` and padding **overflows its parent**. But because CSS defaults to `overflow: visible`, the overflow is merely visual — it does NOT trigger a scrollbar.
-
-**In LDT DSL:**
-- `overflow` defaults to `auto` → as soon as the child overflows the parent, **a scrollbar appears immediately**
-- Therefore `height: 100%` + `padding` almost always produces an unwanted scrollbar on the parent
+`width`, `height`, `min-*`, and `max-*` include padding and border. LDT does not support switching to content-box sizing.
 
 ```ldt
-/* ❌ content-box default: border-box = 100% + 24px×2 → overflows parent, triggers scrollbar */
+/* The border-box height equals the parent height; padding is included. */
 .card { height: 100%; padding: 24px; }
-
-/* ✅ border-box: height includes padding, border-box exactly = 100%, no overflow */
-.card { height: 100%; padding: 24px; box-sizing: border-box; }
 ```
 
-**Rule**: Whenever you use `height: 100%` (or `width: 100%`) together with `padding`, **always add `box-sizing: border-box`**, otherwise 100% + padding will inevitably overflow the parent.
+`height: 100%` and padding can therefore be combined directly without a `box-sizing` property.
 
 ### 11.3 Fixed-size containers must account for content
 
@@ -461,7 +446,7 @@ The built-in font `AlibabaPuHuiTi` does not contain emoji. Using emoji character
 ```
 Root (800×600)
   └── Container (100% × 100%)        = 800×600
-       └── Card (height:100%, box-sizing:border-box) = 360×600
+       └── Card (height:100%) = 360×600
             └── content-box = 600 - 32padding = 568px
                  └── children total ~572px → overflow 4px → scrollbar appears
 ```
