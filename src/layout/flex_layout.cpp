@@ -299,8 +299,11 @@ void FlexLayout::layoutFlex(BoxModelEngine* engine, ldt::ResolvedNode* node,
             float alignOffset = 0;
             
             if (alignItems == ldt::AlignItems::Stretch) {
-                float targetCross = lineCrossSize; 
                 const IPropertyProvider& childRes = child->props();
+                float targetCross = lineCrossSize;
+                if (lines.size() == 1 && childRes.getOverflow() != ldt::Overflow::Visible) {
+                    targetCross = containerCross;
+                }
                     if (isRow) {
                     if (childRes.getDisplay() != ldt::FormattingContext::Inline && childRes.getHeight().isAuto()) {
                          float availableForContent = targetCross - child->layout.margin.vertical() - child->layout.border.vertical() - child->layout.padding.vertical();

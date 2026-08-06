@@ -87,6 +87,98 @@ TEST_CASE("layout/flex_min_max_redistributes_space") {
     EXPECT_FLOAT_EQ(second->layout.computedWidth, 300.0f, 0.5f);
 }
 
+TEST_CASE("layout/flex_overflow_stays_with_shrunk_child") {
+    TestEnv env;
+    std::string source =
+        "@style {"
+        " .main { width:800; height:500; overflow:auto; }"
+        " .canvas-area { width:100%; padding:160; overflow:auto; }"
+        " .canvas { width:600; height:400; }"
+        " .sidebar { width:260; height:100%; }"
+        "}"
+        "@layout {"
+        " .main { display:flex; flex-direction:row; }"
+        " .canvas-area { display:flex; flex-grow:1; flex-shrink:1;"
+        "                align-items:center; justify-content:center; }"
+        "}"
+        "panel:main(class=\"main\") {"
+        " panel:canvasArea(class=\"canvas-area\") {"
+        "  panel:canvas(class=\"canvas\")"
+        " }"
+        " panel:sidebar(class=\"sidebar\")"
+        "}";
+
+    env.load(source, 800.0f, 500.0f);
+    auto* main = env.findById("main");
+    auto* canvasArea = env.findById("canvasArea");
+    auto* canvas = env.findById("canvas");
+    EXPECT_NOT_NULL(main);
+    EXPECT_NOT_NULL(canvasArea);
+    EXPECT_NOT_NULL(canvas);
+
+    EXPECT_FLOAT_EQ(canvasArea->layout.padding.left, 160.0f, 0.5f);
+    EXPECT_FLOAT_EQ(canvasArea->layout.padding.right, 160.0f, 0.5f);
+    EXPECT_FLOAT_EQ(canvasArea->layout.getBorderBox().height, 500.0f, 0.5f);
+    EXPECT_FLOAT_EQ(canvas->layout.getBorderBox().x,
+                    canvasArea->layout.getAbsoluteContentBox().x - 190.0f, 0.5f);
+    EXPECT_FALSE(main->layout.scroll.hasVBar);
+    EXPECT_TRUE(canvasArea->layout.scroll.hasVBar);
+}
+
+TEST_CASE("layout/flex_visible_overflow_remains_parent_overflow") {
+    TestEnv env;
+    std::string source =
+        "@style {"
+        " .main { width:800; height:500; overflow:auto; }"
+        " .content { overflow:visible; }"
+        " .tall { width:100; height:700; }"
+        "}"
+        "@layout {"
+        " .main { display:flex; flex-direction:row; }"
+        "}"
+        "panel:main(class=\"main\") {"
+        " panel:content(class=\"content\") {"
+        "  panel(class=\"tall\")"
+        " }"
+        "}";
+
+    env.load(source, 800.0f, 500.0f);
+    auto* main = env.findById("main");
+    auto* content = env.findById("content");
+    EXPECT_NOT_NULL(main);
+    EXPECT_NOT_NULL(content);
+
+    EXPECT_FLOAT_EQ(content->layout.getBorderBox().height, 700.0f, 0.5f);
+    EXPECT_TRUE(main->layout.scroll.hasVBar);
+    EXPECT_FALSE(content->layout.scroll.hasVBar);
+}
+
+TEST_CASE("layout/flex_center_preserves_negative_free_space") {
+    TestEnv env;
+    std::string source =
+        "@style {"
+        " .row { width:300; height:80; }"
+        " .item { width:100; height:80; }"
+        "}"
+        "@layout {"
+        " .row { display:flex; justify-content:center; }"
+        " .item { flex-shrink:0; }"
+        "}"
+        "panel:row(class=\"row\") {"
+        " panel:first(class=\"item\"), panel(class=\"item\"),"
+        " panel(class=\"item\"), panel(class=\"item\")"
+        "}";
+
+    env.load(source, 800.0f, 600.0f);
+    auto* row = env.findById("row");
+    auto* first = env.findById("first");
+    EXPECT_NOT_NULL(row);
+    EXPECT_NOT_NULL(first);
+
+    EXPECT_FLOAT_EQ(first->layout.getBorderBox().x,
+                    row->layout.getAbsoluteContentBox().x - 50.0f, 0.5f);
+}
+
 TEST_CASE("render/scroll_cache_tracks_content_offset") {
     TestEnv env;
     env.loadFull(makeOverflowLayout(" min-height:0;"), 800.0f, 600.0f);

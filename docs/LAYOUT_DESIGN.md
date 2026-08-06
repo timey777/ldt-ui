@@ -51,6 +51,8 @@ Grow 和 shrink 相互独立，并且只作用于主轴。
 
 没有可收缩元素时，未解决的空间成为容器 overflow。默认 `flex-shrink: 0` 的元素不会被隐式压缩。
 
+单行 flex 中，`align-items: stretch` 始终可以扩大 auto 交叉尺寸。只有子项的 `overflow` 为 `auto`、`scroll` 或 `hidden` 时才允许向容器交叉尺寸缩小，超出内容由该子项处理；`overflow: visible` 保留内容尺寸，溢出范围交给父级。
+
 ## 滚动容器
 
 需要占用剩余空间的弹性滚动区域必须显式允许收缩：

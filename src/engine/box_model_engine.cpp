@@ -668,10 +668,6 @@ void BoxModelEngine::calculateScrollState(ldt::ResolvedNode* node) {
 
             if (newVW < 0) newVW = 0;
             if (newVH < 0) newVH = 0;
-			if (needH != needV)
-			{
-				break;
-			}
             bool stable =
                 (needH == l.scroll.hasHBar) &&
                 (needV == l.scroll.hasVBar);

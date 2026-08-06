@@ -331,7 +331,7 @@ LDT DSL 支持以下五种单位：
 - `space-evenly` — 所有间距（含首尾）完全相等
 
 **交叉轴对齐（align-items）— 4 种模式：**
-- `stretch`（默认）— 自动拉伸填满行高/行宽，仅对未设固定尺寸的子元素生效
+- `stretch`（默认）— auto 尺寸可拉伸；仅 `overflow` 非 `visible` 时允许缩到容器交叉尺寸
 - `flex-start` — 起始端对齐
 - `flex-end` — 末尾端对齐
 - `center` — 居中对齐

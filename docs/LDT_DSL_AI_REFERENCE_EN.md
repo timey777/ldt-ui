@@ -175,7 +175,7 @@ These can be used in `@layout` blocks or inlined in node attributes.
 | `justify-content` | ✅ All 6 values | flex-start / flex-end / center / space-between / space-around / space-evenly |
 | `flex-grow` | ✅ | Proportional distribution of remaining space; triggers child remeasure after allocation |
 | `flex-shrink` | ✅ | Direct shrink-value allocation; freezes at min-size and redistributes the remainder |
-| `align-items: stretch` | ✅ | Auto-sized children stretched to row height/width |
+| `align-items: stretch` | ✅ | Auto cross sizes may grow; they shrink to the container only when `overflow != visible` |
 | `align-items: center` | ✅ | Cross-axis centering |
 | `align-items: flex-end` | ✅ | Cross-axis end alignment |
 | `align-items: flex-start` | ✅ | Cross-axis start (default fallthrough) |
@@ -202,7 +202,7 @@ These can be used in `@layout` blocks or inlined in node attributes.
 
 ## 8. Layout Algorithm Behavior
 
-Deterministic rules: `width`/`height` are border-box preferred sizes; min-size defaults to zero and max-size is unbounded; grow and shrink are independent; only items with explicit `flex-shrink > 0` may shrink; deficit is distributed directly by shrink value, freezing items at min-size and redistributing the remainder; unresolved deficit becomes overflow.
+Deterministic rules: `width`/`height` are border-box preferred sizes; min-size defaults to zero and max-size is unbounded; grow and shrink are independent; only items with explicit `flex-shrink > 0` may shrink; deficit is distributed directly by shrink value, freezing items at min-size and redistributing the remainder; unresolved deficit becomes overflow. In a single flex line, an auto cross size may always grow through stretch; it shrinks to the container cross size only when the item uses auto, scroll, or hidden overflow. With visible overflow, content size is preserved and overflow is propagated to the parent.
 
 | Layout Mode | display value | Behavior |
 |------------|---------------|----------|

@@ -331,7 +331,7 @@ Suitable for page structure, card lists, and other top-to-bottom arrangements.
 - `space-evenly` — All spacing (including ends) completely equal
 
 **Cross-Axis Alignment (align-items) — 4 modes:**
-- `stretch` (default) — Auto-stretch to fill row height/width, only for children without fixed size
+- `stretch` (default) — Auto cross sizes may stretch; they shrink to the container cross size only when overflow is not `visible`
 - `flex-start` — Align to start
 - `flex-end` — Align to end
 - `center` — Center alignment

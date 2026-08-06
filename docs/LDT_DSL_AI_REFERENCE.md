@@ -175,7 +175,7 @@ type(attr) { child1, child2, child3(id="x") }
 | `justify-content` | ✅ 全部 6 值 | flex-start / flex-end / center / space-between / space-around / space-evenly |
 | `flex-grow` | ✅ | 按比例分配剩余空间，分配后触发子元素 remeasure |
 | `flex-shrink` | ✅ | 按 shrink 值直接分配收缩量，达到 min-size 后冻结并重新分配 |
-| `align-items: stretch` | ✅ | auto 尺寸子元素拉伸到行高/行宽 |
+| `align-items: stretch` | ✅ | auto 尺寸可扩大；仅 `overflow != visible` 时可缩到容器交叉尺寸 |
 | `align-items: center` | ✅ | 交叉轴居中 |
 | `align-items: flex-end` | ✅ | 交叉轴末尾对齐 |
 | `align-items: flex-start` | ✅ | 交叉轴起始（默认 fallthrough） |
@@ -202,7 +202,7 @@ type(attr) { child1, child2, child3(id="x") }
 
 ## 8. 布局算法行为
 
-确定性规则：`width`/`height` 是 border-box 期望尺寸；min-size 默认 0，max-size 默认不限制；grow 和 shrink 相互独立；只有显式 `flex-shrink > 0` 的元素参与收缩；收缩量直接按 shrink 值分配，达到 min-size 后冻结并重新分配；无法继续收缩的空间成为 overflow。
+确定性规则：`width`/`height` 是 border-box 期望尺寸；min-size 默认 0，max-size 默认不限制；grow 和 shrink 相互独立；只有显式 `flex-shrink > 0` 的元素参与收缩；收缩量直接按 shrink 值分配，达到 min-size 后冻结并重新分配；无法继续收缩的空间成为 overflow。单行 flex 的 auto 交叉尺寸始终可 stretch 扩大；仅当子项 `overflow` 为 auto、scroll 或 hidden 时可缩到容器交叉尺寸，`overflow: visible` 则保留内容尺寸并把溢出交给父级。
 
 | 布局模式 | display 值 | 行为 |
 |---------|-----------|------|

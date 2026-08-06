@@ -51,6 +51,8 @@ When free space is negative, only items with `flex-shrink > 0` participate. The 
 
 If no eligible item remains, unresolved space becomes container overflow. Items with the default `flex-shrink: 0` are never reduced implicitly.
 
+In a single flex line, `align-items: stretch` may always grow an auto cross size. It may reduce the item to the container cross size only when the item's `overflow` is `auto`, `scroll`, or `hidden`; that item then handles excess content. With `overflow: visible`, the content size is preserved and its overflow is propagated to the parent.
+
 ## Scroll Containers
 
 A flexible scroll region must opt into shrinking:
