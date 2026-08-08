@@ -118,3 +118,64 @@ TEST_CASE("layout/flex_shrink_redistributes_after_min_width") {
     EXPECT_FLOAT_EQ(itemA->layout.computedWidth, 180.0f, 0.5f);
     EXPECT_FLOAT_EQ(itemB->layout.computedWidth, 120.0f, 0.5f);
 }
+
+// Regression: flex-shrink only resolves the main axis. When the item's cross-axis (height)
+// is auto, it must be re-derived from the content wrapped at the *shrunk* width instead of
+// being locked to the stale pre-shrink height.
+// Text: 45 chars * 8px = 360px. At 240px it wraps to 2 lines (40px); at 160px it wraps to
+// 3 lines (60px). After shrinking 240 -> 160 the height must become 60px.
+TEST_CASE("layout/flex_shrink_rederives_auto_cross_size_from_content") {
+    TestEnv env;
+    std::string source =
+        "@style {"
+        " .container { width:160; height:200; }"
+        " .item { width:240; }"
+        "}"
+        "@layout {"
+        " .container { display:flex; flex-direction:row; align-items:flex-start; }"
+        " .item { flex-shrink:1; }"
+        " .item-text { display:block; }"
+        "}"
+        "panel:container(class=\"container\") {"
+        " panel:item(class=\"item\") {"
+        "  text(class=\"item-text\", value=\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\")"
+        " }"
+        "}";
+
+    env.load(source);
+    auto* item = env.findById("item");
+    EXPECT_NOT_NULL(item);
+
+    // Main axis (width) shrinks from 240 to 160.
+    EXPECT_FLOAT_EQ(item->layout.computedWidth, 160.0f, 0.5f);
+    // Auto height re-derived from content at the shrunk width: 3 lines -> 60px.
+    EXPECT_FLOAT_EQ(item->layout.computedHeight, 60.0f, 0.5f);
+}
+
+// Same layout without flex-shrink: the item keeps its preferred width (240) and its
+// content height (2 lines -> 40px). The cross axis is not touched at all.
+TEST_CASE("layout/flex_no_shrink_keeps_content_cross_size") {
+    TestEnv env;
+    std::string source =
+        "@style {"
+        " .container { width:160; height:200; }"
+        " .item { width:240; }"
+        "}"
+        "@layout {"
+        " .container { display:flex; flex-direction:row; align-items:flex-start; }"
+        " .item { flex-shrink:0; }"
+        " .item-text { display:block; }"
+        "}"
+        "panel:container(class=\"container\") {"
+        " panel:item(class=\"item\") {"
+        "  text(class=\"item-text\", value=\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\")"
+        " }"
+        "}";
+
+    env.load(source);
+    auto* item = env.findById("item");
+    EXPECT_NOT_NULL(item);
+
+    EXPECT_FLOAT_EQ(item->layout.computedWidth, 240.0f, 0.5f);
+    EXPECT_FLOAT_EQ(item->layout.computedHeight, 40.0f, 0.5f);
+}

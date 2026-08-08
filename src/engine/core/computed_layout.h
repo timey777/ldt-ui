@@ -103,7 +103,6 @@ namespace ldt {
 		{
 			float offsetX = 0, offsetY = 0;
 			float scrollWidth = 0, scrollHeight = 0;
-			bool hasHBar = false, hasVBar = false;
 		};
 
 		// overflow != "visible" 且内容超出 viewport 时使用

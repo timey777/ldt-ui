@@ -214,7 +214,9 @@ void FlexLayout::layoutFlex(BoxModelEngine* engine, ldt::ResolvedNode* node,
                     if (added <= 0.0f) continue;
 
                     setComputedMainContentSize(child, isRow, next);
-                    engine->reMeasureChildren(child);
+                    // flex-grow only resolves the main axis; the cross axis is re-derived
+                    // from content by reMeasureChildren if it is auto.
+                    engine->reMeasureChildren(child, isRow, !isRow);
                     addedSpaceTotal += added;
                 }
                 if (addedSpaceTotal <= 0.0f) break;
@@ -251,7 +253,9 @@ void FlexLayout::layoutFlex(BoxModelEngine* engine, ldt::ResolvedNode* node,
                     if (reduced <= 0.0f) continue;
 
                     setComputedMainContentSize(child, isRow, next);
-                    engine->reMeasureChildren(child);
+                    // flex-shrink only resolves the main axis; the cross axis is re-derived
+                    // from content by reMeasureChildren if it is auto.
+                    engine->reMeasureChildren(child, isRow, !isRow);
                     reducedSpaceTotal += reduced;
                 }
                 if (reducedSpaceTotal <= 0.0f) break;
@@ -299,11 +303,8 @@ void FlexLayout::layoutFlex(BoxModelEngine* engine, ldt::ResolvedNode* node,
             float alignOffset = 0;
             
             if (alignItems == ldt::AlignItems::Stretch) {
+                float targetCross = lineCrossSize; 
                 const IPropertyProvider& childRes = child->props();
-                float targetCross = lineCrossSize;
-                if (lines.size() == 1 && childRes.getOverflow() != ldt::Overflow::Visible) {
-                    targetCross = containerCross;
-                }
                     if (isRow) {
                     if (childRes.getDisplay() != ldt::FormattingContext::Inline && childRes.getHeight().isAuto()) {
                          float availableForContent = targetCross - child->layout.margin.vertical() - child->layout.border.vertical() - child->layout.padding.vertical();
@@ -313,8 +314,10 @@ void FlexLayout::layoutFlex(BoxModelEngine* engine, ldt::ResolvedNode* node,
                              child->layout.maxHeight);
                          child->layout.finalizeSizes();
                          childCross = child->layout.getMarginBox().height;
-                         // Re-measure children of this item because its size changed (stretch)
-                         engine->reMeasureChildren(child);
+                         // Re-measure children of this item because its size changed (stretch).
+                         // Both axes are authoritative here: width was resolved by the flex
+                         // algorithm and height was just set by stretch.
+                         engine->reMeasureChildren(child, true, true);
                     }
                 } else {
                     if (childRes.getDisplay() != ldt::FormattingContext::Inline && childRes.getWidth().isAuto()) {
@@ -325,8 +328,10 @@ void FlexLayout::layoutFlex(BoxModelEngine* engine, ldt::ResolvedNode* node,
                             child->layout.maxWidth);
                         child->layout.finalizeSizes();
                         childCross = child->layout.getMarginBox().width;
-                        // Re-measure children of this item because its size changed (stretch)
-                        engine->reMeasureChildren(child);
+                        // Re-measure children of this item because its size changed (stretch).
+                        // Both axes are authoritative here: height was resolved by the flex
+                        // algorithm and width was just set by stretch.
+                        engine->reMeasureChildren(child, true, true);
                     }
                 }
             } else if (alignItems == ldt::AlignItems::Center) {

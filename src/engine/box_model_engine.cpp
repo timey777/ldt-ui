@@ -491,7 +491,7 @@ void BoxModelEngine::layoutPhase(ldt::ResolvedNode* node, float parentContentX, 
 	// mark clean
 	node->clearDirty(ldt::DirtyFlag::Layout | ldt::DirtyFlag::ChildrenLayout);
 }
-void BoxModelEngine::reMeasureChildren(ldt::ResolvedNode* node) {
+void BoxModelEngine::reMeasureChildren(ldt::ResolvedNode* node, bool widthDefinite, bool heightDefinite) {
     if (!node) return;
 	float w = node->layout.getContentBox().width;
 	float h = node->layout.getContentBox().height;
@@ -501,6 +501,25 @@ void BoxModelEngine::reMeasureChildren(ldt::ResolvedNode* node) {
 	const IPropertyProvider* prop = &resolver;
 	auto& cl = node->layout;
 
+    // flex-grow/flex-shrink only authoritatively resolve the main axis. If the other axis is
+    // not definite and the node has no explicit size property for it, re-derive it from the
+    // re-measured content (e.g. text may wrap differently at the new main-axis size) instead
+    // of locking it to the stale pre-resize value.
+    float availW = w, availH = h;
+    float requestedW = w, requestedH = h;
+    // A flex container's auto cross-axis size is decided by its parent flex layout,
+    // not by its content. Re-measuring it with unbounded space would let the content
+    // stretch the container (see layout/regression_main_content_overflows_with_remeasure),
+    // so keep the current content size as the available space for flex containers.
+    const bool isFlex = (prop->getDisplay() == ldt::FormattingContext::Flex);
+    if (!widthDefinite && prop->getWidth().isAuto()) {
+        requestedW = ldt::AUTO_SENTINEL;
+        availW = isFlex ? w : ldt::UNBOUNDED;
+    }
+    if (!heightDefinite && prop->getHeight().isAuto()) {
+        requestedH = ldt::AUTO_SENTINEL;
+        availH = isFlex ? h : ldt::UNBOUNDED;
+    }
 
 	ldt::FormattingContext ctx = ldt::FormattingContext::Block;
     if (prop->getDisplay() == ldt::FormattingContext::Flex) ctx = ldt::FormattingContext::Flex;
@@ -509,12 +528,15 @@ void BoxModelEngine::reMeasureChildren(ldt::ResolvedNode* node) {
 
     // Dispatch
     if (ctx == ldt::FormattingContext::Flex) {
-        FlexLayout::measureFlex(this, node, w, h, w, h);
+        FlexLayout::measureFlex(this, node, availW, availH, requestedW, requestedH);
     } else if (ctx == ldt::FormattingContext::Inline) {
-        InlineLayout::measureInline(this, node, w, h, w, h);
+        InlineLayout::measureInline(this, node, availW, availH, requestedW, requestedH);
     } else {
-        BlockLayout::measureBlock(this, node, w, h, w, h);
+        BlockLayout::measureBlock(this, node, availW, availH, requestedW, requestedH);
     }
+
+    // Make the (possibly re-derived) sizes take effect in the box model.
+    node->layout.finalizeSizes();
 }
 
 
@@ -645,10 +667,8 @@ void BoxModelEngine::calculateScrollState(ldt::ResolvedNode* node) {
         // overflow=visible: 不创建 viewport，内容可溢出且不做视口裁剪
         l.viewportWidth  = 0;
         l.viewportHeight = 0;
-        l.scroll.hasHBar = false;
-        l.scroll.hasVBar = false;
     } else if (prop->getOverflow() == ldt::Overflow::Hidden) {
-        l.scroll.hasHBar = l.scroll.hasVBar = false;
+        // overflow=hidden: 内容裁剪、无滚动条（渲染端依据 scrollWidth/Height 与 viewport 判断）
     } else {
 		ui::Edges nodePadding = prop->getPadding();
 		l.scroll.scrollWidth = nodePadding.left + maxR + nodePadding.right;
@@ -657,8 +677,9 @@ void BoxModelEngine::calculateScrollState(ldt::ResolvedNode* node) {
         const float SB = ldt::ScrollbarControl::kScrollbarThickness;
         bool force = (prop->getOverflow() == ldt::Overflow::Scroll);
 
-
-        // max 2 passes
+        // max 2 passes: 显示滚动条会占位（缩小 viewport），可能让另一轴也需要滚动条。
+        // 防连锁：只需单轴滚动条时（needH != needV）直接结束，不做占位回环。
+        bool prevNeedH = false, prevNeedV = false;
         for (int i = 0; i < 2; ++i) {
             bool needH = force || (ldt::floatGreater(l.scroll.scrollWidth, l.viewportWidth));
             bool needV = force || (ldt::floatGreater(l.scroll.scrollHeight, l.viewportHeight));
@@ -668,12 +689,16 @@ void BoxModelEngine::calculateScrollState(ldt::ResolvedNode* node) {
 
             if (newVW < 0) newVW = 0;
             if (newVH < 0) newVH = 0;
+            if (needH != needV)
+            {
+                break;
+            }
             bool stable =
-                (needH == l.scroll.hasHBar) &&
-                (needV == l.scroll.hasVBar);
+                (needH == prevNeedH) &&
+                (needV == prevNeedV);
 
-            l.scroll.hasHBar = needH;
-            l.scroll.hasVBar = needV;
+            prevNeedH = needH;
+            prevNeedV = needV;
             l.viewportWidth  = newVW;
             l.viewportHeight = newVH;
 

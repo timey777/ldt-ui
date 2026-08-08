@@ -36,8 +36,13 @@ public:
 
     // Measure & layout pass methods (converted from free functions)
     void measurePhase(ldt::ResolvedNode* node, float containerContentW, float containerContentH, ldt::FormattingContext parentCtx, bool parentWidthDefinite = true, bool parentHeightDefinite = true);
-    // Re-measure children of a node that has been resized (e.g. by flex-grow)
-    void reMeasureChildren(ldt::ResolvedNode* node);
+    // Re-measure children of a node that has been resized (e.g. by flex-grow/flex-shrink
+    // or align-items:stretch).
+    // widthDefinite/heightDefinite: true when the caller has authoritatively resolved that
+    // axis. flex-grow/flex-shrink only resolve the main axis, so the cross axis is passed as
+    // not definite; if the node has no explicit width/height for it, it is re-derived from the
+    // re-measured content instead of being locked to the stale pre-resize value.
+    void reMeasureChildren(ldt::ResolvedNode* node, bool widthDefinite, bool heightDefinite);
 
     // Re-calculates positions for node and its children based on current sizes and parent coordinates.
     // Skips measurement phase. Use this for things like dragging or simple position updates.
