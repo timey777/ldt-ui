@@ -1166,17 +1166,16 @@ void OpenGLDrawerAndroid::drawRect(float x, float y, float w, float h, const Dra
 	if (style.strokeWidths.isUniform()) {
 		float strokeW = style.strokeWidths.top;
 		if (strokeW > 0.0f && strokeAlpha > 0.0f) {
+			// Draw the fill over the FULL bounds first, then the stroke ring on
+			// top of it: the anti-aliased border then blends with the fill
+			// instead of whatever is behind the control, so a solid border
+			// never leaks the background color.
+			if (fillAlpha > 0.0f) {
+				float fillColor[4] = { style.fillColor.r, style.fillColor.g, style.fillColor.b, fillAlpha };
+				rect_batch_append(d, x, y, w, h, corner, 0.0f, fillColor);
+			}
 			float strokeColor[4] = { style.strokeColor.r, style.strokeColor.g, style.strokeColor.b, strokeAlpha };
 			rect_batch_append(d, x, y, w, h, corner, strokeW, strokeColor);
-
-			float ix = x + strokeW;
-			float iy = y + strokeW;
-			float iw = w - 2.0f * strokeW;
-			float ih = h - 2.0f * strokeW;
-			if (iw > 0.0f && ih > 0.0f && fillAlpha > 0.0f) {
-				float fillColor[4] = { style.fillColor.r, style.fillColor.g, style.fillColor.b, fillAlpha };
-				rect_batch_append(d, ix, iy, iw, ih, std::max(0.0f, corner - strokeW), 0.0f, fillColor);
-			}
 		}
 		else {
 			if (fillAlpha > 0.0f) {
@@ -1224,18 +1223,16 @@ void OpenGLDrawerAndroid::drawRoundedRect(float x, float y, float w, float h, fl
 	float strokeW = style.strokeWidths.top;
 	float strokeAlpha = style.strokeColor.a * style.opacity;
 	if (strokeW > 0.0f && strokeAlpha > 0.0f) {
+		// Fill first over the full bounds, then the stroke ring on top, so the
+		// anti-aliased border blends with the fill and never leaks the
+		// background color behind the control.
+		float fillAlpha = style.fillColor.a * style.opacity;
+		if (fillAlpha > 0.0f) {
+			float fillColor[4] = { style.fillColor.r, style.fillColor.g, style.fillColor.b, fillAlpha };
+			rect_batch_append(d, x, y, w, h, corner, 0.0f, fillColor);
+		}
 		float strokeColor[4] = { style.strokeColor.r, style.strokeColor.g, style.strokeColor.b, strokeAlpha };
 		rect_batch_append(d, x, y, w, h, corner, strokeW, strokeColor);
-
-		float ix = x + strokeW;
-		float iy = y + strokeW;
-		float iw = w - 2.0f * strokeW;
-		float ih = h - 2.0f * strokeW;
-		float fillAlpha = style.fillColor.a * style.opacity;
-		if (iw > 0.0f && ih > 0.0f && fillAlpha > 0.0f) {
-			float fillColor[4] = { style.fillColor.r, style.fillColor.g, style.fillColor.b, fillAlpha };
-			rect_batch_append(d, ix, iy, iw, ih, std::max(0.0f, corner - strokeW), 0.0f, fillColor);
-		}
 	}
 	else {
 		float fillAlpha = style.fillColor.a * style.opacity;

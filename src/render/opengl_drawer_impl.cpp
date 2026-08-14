@@ -595,10 +595,19 @@ static void gl_apply_clip_rect(OpenGLDrawerImpl::ImplData* d, bool hasClip, cons
 		return;
 	}
 	// convert top-left clip (DIP) to bottom-left scissor (pixels)
-	int sx = (int)(clip.x * d->scaleX);
-	int sy = (int)(d->height - (clip.y + clip.h) * d->scaleY);
-	int sw = (int)(clip.w * d->scaleX);
-	int sh = (int)(clip.h * d->scaleY);
+	// Round the clip edges outward (floor top-left, ceil bottom-right) so a
+	// fractional clip rect doesn't cut off the right/bottom 1px (e.g. a panel
+	// at x=167.2 w=620.8 would otherwise scissor at x=787 instead of 788).
+	float leftDp = clip.x * d->scaleX;
+	float topDp = d->height - (clip.y + clip.h) * d->scaleY;
+	float rightDp = (clip.x + clip.w) * d->scaleX;
+	float bottomDp = d->height - clip.y * d->scaleY;
+	int sx = (int)std::floor(leftDp);
+	int sy = (int)std::floor(topDp);
+	int sxr = (int)std::ceil(rightDp);
+	int syb = (int)std::ceil(bottomDp);
+	int sw = sxr - sx;
+	int sh = syb - sy;
 	if (sw < 0) sw = 0;
 	if (sh < 0) sh = 0;
 	gl_apply_scissor(d, true, sx, sy, sw, sh);
@@ -1192,17 +1201,16 @@ void OpenGLDrawerImpl::drawRect(float x, float y, float w, float h, const DrawSt
 	if (style.strokeWidths.isUniform()) {
 		float strokeW = style.strokeWidths.top;
 		if (strokeW > 0.0f && strokeAlpha > 0.0f) {
+			// Draw the fill over the FULL bounds first, then the stroke ring on
+			// top of it: the anti-aliased border then blends with the fill
+			// instead of whatever is behind the control, so a solid border
+			// never leaks the background color.
+			if (fillAlpha > 0.0f) {
+				float fillColor[4] = { style.fillColor.r, style.fillColor.g, style.fillColor.b, fillAlpha };
+				rect_batch_append(d, x, y, w, h, corner, 0.0f, fillColor);
+			}
 			float strokeColor[4] = { style.strokeColor.r, style.strokeColor.g, style.strokeColor.b, strokeAlpha };
 			rect_batch_append(d, x, y, w, h, corner, strokeW, strokeColor);
-
-			float ix = x + strokeW;
-			float iy = y + strokeW;
-			float iw = w - 2.0f * strokeW;
-			float ih = h - 2.0f * strokeW;
-			if (iw > 0.0f && ih > 0.0f && fillAlpha > 0.0f) {
-				float fillColor[4] = { style.fillColor.r, style.fillColor.g, style.fillColor.b, fillAlpha };
-				rect_batch_append(d, ix, iy, iw, ih, std::max(0.0f, corner - strokeW), 0.0f, fillColor);
-			}
 		}
 		else {
 			if (fillAlpha > 0.0f) {
@@ -1250,18 +1258,16 @@ void OpenGLDrawerImpl::drawRoundedRect(float x, float y, float w, float h, float
 	float strokeW = style.strokeWidths.top;
 	float strokeAlpha = style.strokeColor.a * style.opacity;
 	if (strokeW > 0.0f && strokeAlpha > 0.0f) {
+		// Fill first over the full bounds, then the stroke ring on top, so the
+		// anti-aliased border blends with the fill and never leaks the
+		// background color behind the control.
+		float fillAlpha = style.fillColor.a * style.opacity;
+		if (fillAlpha > 0.0f) {
+			float fillColor[4] = { style.fillColor.r, style.fillColor.g, style.fillColor.b, fillAlpha };
+			rect_batch_append(d, x, y, w, h, corner, 0.0f, fillColor);
+		}
 		float strokeColor[4] = { style.strokeColor.r, style.strokeColor.g, style.strokeColor.b, strokeAlpha };
 		rect_batch_append(d, x, y, w, h, corner, strokeW, strokeColor);
-
-		float ix = x + strokeW;
-		float iy = y + strokeW;
-		float iw = w - 2.0f * strokeW;
-		float ih = h - 2.0f * strokeW;
-		float fillAlpha = style.fillColor.a * style.opacity;
-		if (iw > 0.0f && ih > 0.0f && fillAlpha > 0.0f) {
-			float fillColor[4] = { style.fillColor.r, style.fillColor.g, style.fillColor.b, fillAlpha };
-			rect_batch_append(d, ix, iy, iw, ih, std::max(0.0f, corner - strokeW), 0.0f, fillColor);
-		}
 	}
 	else {
 		float fillAlpha = style.fillColor.a * style.opacity;
