@@ -7,8 +7,6 @@
 #include "engine/document_runtime.h"
 #include "engine/update_scheduler.h"
 #include "components/container_control.h"
-#include "components/control_factory.h"
-#include "components/control_manager.h"
 #include "components/scene.h"
 #include "misc/stable_id.h"
 #include "misc/logger.h"
@@ -21,7 +19,7 @@ namespace ldt {
 // 覆盖 applyASTRepaint()，在标准管道/Sync 之外增加：
 //   1. 在 scene 的 ResolvedTree 中定位 preview 锚节点
 //   2. 清空旧子树、挂载引擎 ResolvedTree
-//   3. 确保 scene root 控件存在并将面板挂载为其子控件
+//   3. 引导：确保 preview 控件存在并沿解析树祖先链建好控件层级（TreeSynchronizer）
 //   4. 在 preview 范围内执行 syncToControls
 //   5. 校验所有子节点均已绑定 Control
 // ===================================================================
@@ -57,43 +55,16 @@ protected:
             hostTree->attachSubtreeFromOther(*context_->getResolvedTree(), preview);
         }
 
-        // Ensure the preview panel itself has a control (needed as sync anchor).
-        // Also ensure the scene root control exists so panels can be parented
-        // under it — this is required for clip to propagate through the render
-        // tree via the render() clip parameter during culling.
-        auto previewCtrl = preview->getControl().lock();
-        if (!previewCtrl) {
-            try {
-                previewCtrl = ControlFactory::getInstance()->CreateControlFromResolvedNode(preview);
-                if (previewCtrl) {
-                    auto* sceneRt = hostTree->getRoot();
-                    std::shared_ptr<AbstractControl> sceneRootCtrl;
-                    if (sceneRt) {
-                        sceneRootCtrl = sceneRt->getControl().lock();
-                        if (!sceneRootCtrl) {
-                            sceneRootCtrl = ControlFactory::getInstance()->CreateControlFromResolvedNode(sceneRt);
-                            if (sceneRootCtrl && !sceneRootCtrl->getParent()) {
-                                scene->getControlManager()->addRootControl(sceneRootCtrl);
-                            }
-                        }
-                    }
-                    if (sceneRootCtrl) {
-                        if (auto cc = std::dynamic_pointer_cast<ContainerControl>(sceneRootCtrl)) {
-                            cc->addChild(previewCtrl);
-                        }
-                    }
-                    if (!previewCtrl->getParent()) {
-                        scene->getControlManager()->addRootControl(previewCtrl);
-                    }
-                }
-            } catch (...) { LDT_ERROR("PreviewViewCoordinator: failed to create preview panel control"); }
-        }
+        // 引导：确保 preview 控件存在，并沿解析树祖先链建好控件层级
+        //（控件树层级与解析树一致 → clip 正确传播、绘制顺序不被兄弟盖住）。
+        // 具体由 TreeSynchronizer::ensureControlWithAncestors 负责。
+        auto previewCtrl = m_treeSynchronizer.ensureControlWithAncestors(preview, scene);
 
         // Scoped structural sync
         SyncScope scope;
         scope.resolvedRoot    = preview;
-        scope.controlRoot     = preview->getControl().lock();
-        scope.orphanContainer = dynamic_cast<ContainerControl*>(preview->getControl().lock().get());
+        scope.controlRoot     = previewCtrl;
+        scope.orphanContainer = dynamic_cast<ContainerControl*>(previewCtrl.get());
 
         if (!preview->getChildren().empty()) {
             m_treeSynchronizer.syncToControls(context_, scene, scope);

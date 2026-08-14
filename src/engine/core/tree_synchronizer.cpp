@@ -17,6 +17,7 @@
 
 #include <unordered_map>
 #include <functional>
+#include <algorithm>
 
 namespace ldt {
 
@@ -313,6 +314,50 @@ void TreeSynchronizer::syncToControls(::DocumentRuntime* ctx, Scene* scene, cons
         if (it != nodeByUid.end()) {
             updateControl(ctrl, it->second);
         }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// TreeSynchronizer::ensureControlWithAncestors (hierarchy bootstrap)
+// ---------------------------------------------------------------------------
+
+std::shared_ptr<AbstractControl> TreeSynchronizer::ensureControlWithAncestors(
+    ResolvedNode* node, Scene* scene) const {
+    if (!node) return nullptr;
+    try {
+        auto ctrl = node->getControl().lock();
+        if (!ctrl) {
+            ctrl = ControlFactory::getInstance()->CreateControlFromResolvedNode(node);
+            if (!ctrl) return nullptr;
+        }
+
+        // 沿解析树向上：确保每个祖先都有控件，并把下一层控件挂到它下面，
+        // 使控件树层级与解析树一致（clip 正确传播、绘制顺序不被兄弟盖住）。
+        std::shared_ptr<AbstractControl> childCtrl = ctrl;
+        for (ResolvedNode* anc = node->parent; anc; anc = anc->parent) {
+            auto ancCtrl = anc->getControl().lock();
+            if (!ancCtrl) {
+                ancCtrl = ControlFactory::getInstance()->CreateControlFromResolvedNode(anc);
+                if (!ancCtrl) continue;
+            }
+            if (auto cc = std::dynamic_pointer_cast<ContainerControl>(ancCtrl)) {
+                // 幂等保护：避免把同一子控件重复挂载
+                const auto& existing = cc->getChild();
+                if (std::find(existing.begin(), existing.end(), childCtrl) == existing.end()) {
+                    cc->addChild(childCtrl);
+                }
+                childCtrl = ancCtrl;
+            }
+        }
+
+        // 链顶控件若尚未被挂载，注册为场景根控件（保证进入渲染树）
+        if (scene && !childCtrl->getParent()) {
+            scene->getControlManager()->addRootControl(childCtrl);
+        }
+        return ctrl;
+    } catch (...) {
+        LDT_ERROR("TreeSynchronizer::ensureControlWithAncestors failed");
+        return nullptr;
     }
 }
 

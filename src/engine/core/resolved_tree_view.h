@@ -27,6 +27,10 @@ namespace ldt {
         ldt::ResolvedNode* getRoot() const;
         void attachSubtree(ResolvedNode* node, ResolvedNode* parent);
         void attachSubtreeFromOther(ResolvedTree& source, ldt::ResolvedNode* parent, bool shouldMarkDirty = true);
+
+        // 若本视图树尚无根，将 source 的根接管为本视图根（首次构建合并引擎树）。
+        // 已有根或 source 无根时不做任何事。
+        void adoptRootFrom(ResolvedTree& source);
     };
 
 }

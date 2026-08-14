@@ -60,6 +60,12 @@ public:
     // Skips BindControlToResolvedNode, style properties, and type-specific
     // handling (Image/Input). Suitable for resize where only layout changed.
     void updateControlLayoutOnly(const std::shared_ptr<AbstractControl>& ctrl, ResolvedNode* rn);
+
+    // 引导（bootstrap）：确保 node 自身有控件（没有则创建），并沿解析树向上
+    // 确保每个祖先都有控件、逐级挂载，使控件树层级与解析树一致。
+    // 链顶控件若尚未挂载则注册为场景根控件。返回 node 的控件（可能为空）。
+    std::shared_ptr<AbstractControl> ensureControlWithAncestors(
+        ResolvedNode* node, Scene* scene) const;
 };
 
 } // namespace ldt

@@ -55,11 +55,10 @@ void ViewCoordinator::applyASTRepaint() {
     Scene* scene = resolveScene();
     if (!canRunPipeline(scene)) return;
     try { context_->runPipelineRenderTreeOnly(viewportSize_); } catch (...) {}
-    // Merge engine tree into scene tree on first build
-    {
-        auto* rt = scene->getResolvedTree();
-        if (rt && context_->getResolvedTree() && context_->getResolvedTree()->getRoot()) {
-            if (!rt->getRoot()) rt->attachSubtreeFromOther(*context_->getResolvedTree(), nullptr, false);
+    // 首次构建：把引擎 ResolvedTree 的根合并进场景视图树
+    if (auto* rt = scene->getResolvedTree()) {
+        if (auto* engineTree = context_->getResolvedTree()) {
+            rt->adoptRootFrom(*engineTree);
         }
     }
     SyncScope scope;

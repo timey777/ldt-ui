@@ -53,3 +53,8 @@ void ResolvedTreeView::attachSubtreeFromOther(ResolvedTree& source, ResolvedNode
         root_ = movedRoot;
     }
 }
+
+void ResolvedTreeView::adoptRootFrom(ResolvedTree& source) {
+    if (root_ || !source.getRoot()) return;
+    attachSubtreeFromOther(source, nullptr, false);
+}
