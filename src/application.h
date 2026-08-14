@@ -4,8 +4,10 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <atomic>
 #include "ldt_export.h"
 #include "engine/core/coordinate_types.h"
+#include "misc/throttle.h"
 struct GLFWwindow;
 
 class Window;
@@ -62,6 +64,17 @@ private:
     // ── Resize throttle: defer layout to main loop (at most once per frame) ──
     bool m_pendingResize = false;
     ldt::ViewportSizeDp m_pendingViewportSize{ { 0.0f }, { 0.0f } };
+
+    // ── Live resize: throttled synchronous relayout+repaint during OS drag ──
+    // While the user drag-resizes on Windows the main loop is blocked inside
+    // glfwPollEvents (OS nested modal resize loop), so the resize callback must
+    // do the work synchronously (at most once per throttle interval) to keep the
+    // UI live. The main-loop pending flag remains as a fallback for the final size.
+    bool tryApplyLiveResize();
+    void presentFrame();
+    ldt::Throttle m_resizeThrottle;                       // 默认 16ms（约 60fps）
+    ldt::ViewportSizeDp m_appliedViewport{ { 0.0f }, { 0.0f } };
+    std::atomic<bool>* m_pendingPresent = nullptr;
 
 protected:
     // Encapsulate full initial render pipeline: AST -> render tree -> controls -> display list

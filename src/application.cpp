@@ -92,15 +92,60 @@ void Application::framebuffer_size_callback(GLFWwindow* window, int width, int h
     s_instance->m_scaleX = sx;
     s_instance->m_scaleY = sy;
 
-    // ── Resize throttle ──
-    // Eagerly resize the graphics context (GL state must be updated immediately),
-    // but defer the expensive layout/render to the main loop (at most once per frame).
+    // Eagerly resize the graphics context (GL state must be updated immediately).
     if (s_instance->m_graphicsContext) {
         s_instance->m_graphicsContext->resize(framebufferSize, contentScale);
     }
-    // Store latest viewport size and mark pending; main loop will consume it.
+    // Store latest viewport size and mark pending; the main loop consumes it.
     s_instance->m_pendingViewportSize = viewportSize;
     s_instance->m_pendingResize = true;
+
+    // ── Live resize ──
+    // During an OS drag-resize the main loop is blocked inside glfwPollEvents
+    // (Windows nested modal resize loop), so a throttled synchronous relayout +
+    // repaint here keeps the UI live while dragging. Outside a drag this is a
+    // cheap no-op (or a throttled duplicate) that the main-loop fallback covers.
+    s_instance->tryApplyLiveResize();
+}
+
+bool Application::tryApplyLiveResize()
+{
+    if (!m_pendingResize) return false;
+    if (!m_host || !g_documentRuntime) return false;
+    // Pipeline not ready yet (initial build not finished): keep it pending so the
+    // main loop applies the resize once everything is available.
+    if (!Stage::getInstance().currentScene()) return false;
+
+    const ldt::ViewportSizeDp& vp = m_pendingViewportSize;
+    // No actual viewport change -> nothing to relayout (GL state was already updated).
+    if (vp.width.value == m_appliedViewport.width.value &&
+        vp.height.value == m_appliedViewport.height.value) {
+        m_pendingResize = false;
+        return false;
+    }
+
+    // Throttle: skip if a live relayout happened very recently. The pending flag
+    // stays set, so the main loop (or the next drag event) applies the latest size.
+    if (!m_resizeThrottle.tryAcquire()) return false;
+
+    m_pendingResize = false;
+    m_appliedViewport = vp;
+
+    m_host->handleResize(vp);
+    presentFrame();
+    // handleResize already requested a present; we presented synchronously, so
+    // clear the flag to avoid a duplicate present in the main loop.
+    if (m_pendingPresent) m_pendingPresent->store(false);
+    return true;
+}
+
+void Application::presentFrame()
+{
+    if (!m_graphicsContext) return;
+    m_graphicsContext->clear(1, 1, 1, 1);
+    if (m_compositor) m_compositor->paintAll();
+    m_graphicsContext->present();
+    if (m_window) m_window->swapBuffers();
 }
 
 void Application::mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
@@ -339,6 +384,7 @@ int Application::run(int argc, char* argv[])
     documentRuntime.initializeAll({ typeid(StyleEngine), typeid(LayoutEngine), typeid(ASTBuildEngine), typeid(BoxModelEngine) });
 
     std::atomic<bool> pendingPresent{ false };
+    m_pendingPresent = &pendingPresent;
     m_host = std::make_unique<ldt::ViewCoordinator>(
         &compositor, &documentRuntime,
         ldt::ViewportSizeDp{ { m_winW }, { m_winH } },
@@ -401,11 +447,7 @@ int Application::run(int argc, char* argv[])
         //    and the host set `pendingPresent`.
         if (pendingPresent.exchange(false))
         {
-            m_graphicsContext->clear(1, 1, 1, 1);
-            compositor.paintAll();
-
-            m_graphicsContext->present();
-            m_window->swapBuffers();
+            presentFrame();
             // continue immediately to process any newly queued events
             continue;
         }
