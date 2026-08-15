@@ -79,6 +79,11 @@ namespace ldt {
 		// 实际使用的尺寸（在 auto 情况下由 BoxModelEngine 计算）
 		float computedWidth = 0;
 		float computedHeight = 0;
+		// 内在（内容）尺寸：由 measure 阶段产生，独立于最终尺寸。
+		// auto 轴在 resolve 阶段才会被父级 flex 覆盖成最终尺寸；
+		// 这里保留“内容自然需要多大”的事实（用于 scroll 范围 / 调试 / 后续 flex-basis）。
+		float intrinsicWidth = 0;
+		float intrinsicHeight = 0;
 		// 文字绘制
 		bool wrap = false;
 

@@ -408,6 +408,24 @@ void BoxModelEngine::applyAnchor(ldt::ResolvedNode& node, const ldt::ResolvedNod
 	node.layout.setPosition(x + prop->getOffsetX(), y + prop->getOffsetY());
 }
 
+// Resolve pass: top-down, parent resolves each child's FINAL size (flex grow/shrink/stretch + cross-axis
+// compression) using its own already-resolved size, then recurses. Runs between measure and position.
+void BoxModelEngine::resolvePhase(ldt::ResolvedNode* node) {
+	if (!node) return;
+	const IPropertyProvider* prop = &node->props();
+	if (prop->getDisplay() == ldt::FormattingContext::None) return;
+
+	if (prop->getDisplay() == ldt::FormattingContext::Flex) {
+		FlexLayout::resolveFlex(this, node);
+	} else {
+		// block / inline：子项尺寸已由 measure 阶段确定，递归解析子树
+		for (auto* ch : node->getFlowChildren()) {
+			if (ch->props().getDisplay() == ldt::FormattingContext::None) continue;
+			resolvePhase(ch);
+		}
+	}
+}
+
 // Layout pass: set absolute positions according to computed sizes. Similar to sample flex algorithm.
 void BoxModelEngine::layoutPhase(ldt::ResolvedNode* node, float parentContentX, float parentContentY) {
 	if (!node) return;
@@ -442,7 +460,7 @@ void BoxModelEngine::layoutPhase(ldt::ResolvedNode* node, float parentContentX, 
 	bool isInline = (display == ldt::FormattingContext::Inline);
 
 	if (isFlex) {
-		FlexLayout::layoutFlex(this, node, contentAbsoluteX, contentAbsoluteY);
+		FlexLayout::positionFlex(this, node, contentAbsoluteX, contentAbsoluteY);
 	}
 	else if (isInline) {
 		InlineLayout::layoutInline(this, node, contentAbsoluteX, contentAbsoluteY);
@@ -611,7 +629,17 @@ void BoxModelEngine::process(std::shared_ptr<ASTNode> root, ldt::DisplayList& ou
 	}
 	}
 
-	// ── Layout pass ──
+	// ── Resolve pass（自顶向下定最终尺寸）──
+	// 父级用已解析的自身尺寸定子级最终尺寸（flex grow/shrink/stretch），再递归。
+	{ PERF_SCOPE("resolve");
+	resolvePhase(rootNode);
+	for (auto& var : data)
+	{
+		resolvePhase(var);
+	}
+	}
+
+	// ── Layout pass（定位，尺寸已全部解析）──
 	{ PERF_SCOPE("layout");
 	layoutPhase(rootNode, 0.0f, 0.0f);
 	for (auto& var : data)

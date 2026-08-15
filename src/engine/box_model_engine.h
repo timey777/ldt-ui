@@ -36,6 +36,9 @@ public:
 
     // Measure & layout pass methods (converted from free functions)
     void measurePhase(ldt::ResolvedNode* node, float containerContentW, float containerContentH, ldt::FormattingContext parentCtx, bool parentWidthDefinite = true, bool parentHeightDefinite = true);
+    // resolve 阶段：自顶向下，父级用已解析的自身尺寸定子级最终尺寸（flex grow/shrink/stretch），再递归。
+    // 定位之前必须先跑 resolvePhase。
+    void resolvePhase(ldt::ResolvedNode* node);
     // Re-measure children of a node that has been resized (e.g. by flex-grow/flex-shrink
     // or align-items:stretch).
     // widthDefinite/heightDefinite: true when the caller has authoritatively resolved that

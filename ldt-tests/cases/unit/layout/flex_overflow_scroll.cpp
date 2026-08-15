@@ -87,8 +87,8 @@ TEST_CASE("layout/flex_min_max_redistributes_space") {
     EXPECT_FLOAT_EQ(second->layout.computedWidth, 300.0f, 0.5f);
 }
 
-// 交叉轴（高度）上 stretch 只拉伸不压缩：canvas-area 高度由内容决定（400 + 160×2 = 720），
-// 不会被压缩回 main 的 500。因此内容 720 溢出 main(500)，main 应出现垂直滚动条。
+// 交叉轴压缩：main 有确定高度 500，canvas-area（auto 高度、overflow:auto）
+// 被 stretch 压回 500；内容 720 溢出被压回 canvas-area 内部 → canvas-area 自身滚动。
 TEST_CASE("layout/flex_overflow_stays_with_shrunk_child") {
     TestEnv env;
     std::string source =
@@ -120,13 +120,15 @@ TEST_CASE("layout/flex_overflow_stays_with_shrunk_child") {
 
     EXPECT_FLOAT_EQ(canvasArea->layout.padding.left, 160.0f, 0.5f);
     EXPECT_FLOAT_EQ(canvasArea->layout.padding.right, 160.0f, 0.5f);
-    // stretch 只拉伸不压缩：canvas-area 高度 = 内容 400 + padding 320 = 720
-    EXPECT_FLOAT_EQ(canvasArea->layout.getBorderBox().height, 720.0f, 0.5f);
+    // 交叉轴压缩：canvas-area 被 stretch 压回 main 的 500
+    EXPECT_FLOAT_EQ(canvasArea->layout.getBorderBox().height, 500.0f, 0.5f);
     EXPECT_FLOAT_EQ(canvas->layout.getBorderBox().x,
                     canvasArea->layout.getAbsoluteContentBox().x - 190.0f, 0.5f);
     // 渲染端以 scrollHeight > viewportHeight 决定是否显示滚动条（hasVBar/hasHBar 是未使用的字段）
-    // 内容 720 溢出 main(500)：main 应有垂直滚动条
-    EXPECT_GT(main->layout.scroll.scrollHeight, main->layout.viewportHeight);
+    // 内容 720 溢出 canvas-area(500)：溢出被压回 canvas-area 内部 → canvas-area 有垂直滚动条
+    EXPECT_GT(canvasArea->layout.scroll.scrollHeight, canvasArea->layout.viewportHeight);
+    // main 不再溢出（内容已压回 canvas-area 内部滚动）
+    EXPECT_LE(main->layout.scroll.scrollHeight, main->layout.viewportHeight);
     // canvas 600 宽 > canvas-area shrink 后的内容区（content 220）：canvas-area 应有水平滚动条
     EXPECT_GT(canvasArea->layout.scroll.scrollWidth, canvasArea->layout.viewportWidth);
 }

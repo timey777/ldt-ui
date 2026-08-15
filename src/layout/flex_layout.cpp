@@ -128,6 +128,11 @@ void FlexLayout::measureFlex(BoxModelEngine* engine, ldt::ResolvedNode* node,
     float contentW = isRow ? maxLineMain : totalCross;
     float contentH = isRow ? totalCross : maxLineMain;
 
+    // 内在（内容）尺寸：与最终尺寸分离，供 resolve 阶段 / 调试使用。
+    // 这里记录的是“内容自然需要多大”，不受父级 definite 约束覆盖。
+    node->layout.intrinsicWidth = contentW;
+    node->layout.intrinsicHeight = contentH;
+
     if (requestedW != ldt::AUTO_SENTINEL) {
         contentW = requestedW;
     } else {
@@ -147,14 +152,18 @@ void FlexLayout::measureFlex(BoxModelEngine* engine, ldt::ResolvedNode* node,
     node->layout.computedHeight = clampf_flex(contentH, node->layout.minHeight, node->layout.maxHeight);
 }
 
-void FlexLayout::layoutFlex(BoxModelEngine* engine, ldt::ResolvedNode* node,
-                           float contentAbsoluteX, float contentAbsoluteY) {
+// ─────────────────────────────────────────────────────────────────────────
+// resolve 阶段：自顶向下，只解析子项【最终尺寸】。
+//   · 主轴：grow / shrink（flex base = 子项当前尺寸 = 测量结果或确定尺寸）
+//   · 交叉轴：line cross（可拉大可压缩）+ stretch
+//   · 不做任何定位；子项尺寸定完后递归 resolve 子树
+// ─────────────────────────────────────────────────────────────────────────
+void FlexLayout::resolveFlex(BoxModelEngine* engine, ldt::ResolvedNode* node) {
     if (!node) return;
 
     const IPropertyProvider* prop = &node->props();
     bool isRow = isRowDirection(prop->getFlexDirection());
 
-    bool reverse = isReverseDirection(prop->getFlexDirection());
     bool isWrap = prop->getFlexWrap() != ldt::FlexWrap::NoWrap;
     float gap = prop->getGap();
     
@@ -163,8 +172,6 @@ void FlexLayout::layoutFlex(BoxModelEngine* engine, ldt::ResolvedNode* node,
     
     std::vector<FlexLine> lines;
     collectFlexLines(node, containerMain, isRow, isWrap, gap, lines);
-
-    float currentCrossPos = 0;
 
     for (auto& line : lines) {
         float usedMain = line.mainSize;
@@ -185,6 +192,7 @@ void FlexLayout::layoutFlex(BoxModelEngine* engine, ldt::ResolvedNode* node,
             freeMain = containerMain - usedMain;
         };
 
+        // ── 主轴解析：grow / shrink ──
         if (freeMain > 0.0f) {
             for (size_t pass = 0; pass < line.childIndices.size() && freeMain > 0.0f; ++pass) {
                 float totalFlexGrow = 0.0f;
@@ -262,7 +270,91 @@ void FlexLayout::layoutFlex(BoxModelEngine* engine, ldt::ResolvedNode* node,
                 refreshLine();
             }
         }
-        
+
+        // ── 交叉轴解析：单行 line cross = 容器交叉尺寸（父级已解析/确定），stretch 定子项交叉尺寸 ──
+        ldt::AlignItems alignItems = prop->getAlignItems();
+
+        float lineCrossSize = (lines.size() == 1) ? containerCross : line.crossSize;
+
+        for (size_t i = 0; i < line.childIndices.size(); ++i) {
+            size_t idx = line.childIndices[i];
+            auto& child = node->getFlowChildren()[idx];
+
+            if (alignItems == ldt::AlignItems::Stretch) {
+                const IPropertyProvider& childRes = child->props();
+                if (isRow) {
+                    if (childRes.getDisplay() != ldt::FormattingContext::Inline && childRes.getHeight().isAuto()) {
+                        // overflow:visible 的子项不被压缩：保留内容尺寸并把溢出交给父级
+                        float targetCross = (childRes.getOverflow() != ldt::Overflow::Visible)
+                            ? lineCrossSize
+                            : std::max(lineCrossSize, child->layout.intrinsicHeight);
+                        float availableForContent = targetCross - child->layout.margin.vertical() - child->layout.border.vertical() - child->layout.padding.vertical();
+                        child->layout.computedHeight = clampf_flex(
+                            std::max(0.0f, availableForContent),
+                            child->layout.minHeight,
+                            child->layout.maxHeight);
+                        child->layout.finalizeSizes();
+                        // Re-measure children of this item because its size changed (stretch).
+                        // Both axes are authoritative here: width was resolved by the flex
+                        // algorithm and height was just set by stretch.
+                        engine->reMeasureChildren(child, true, true);
+                    }
+                } else {
+                    if (childRes.getDisplay() != ldt::FormattingContext::Inline && childRes.getWidth().isAuto()) {
+                        // overflow:visible 的子项不被压缩：保留内容尺寸并把溢出交给父级
+                        float targetCross = (childRes.getOverflow() != ldt::Overflow::Visible)
+                            ? lineCrossSize
+                            : std::max(lineCrossSize, child->layout.intrinsicWidth);
+                        float availableForContent = targetCross - child->layout.margin.horizontal() - child->layout.border.horizontal() - child->layout.padding.horizontal();
+                        child->layout.computedWidth = clampf_flex(
+                            std::max(0.0f, availableForContent),
+                            child->layout.minWidth,
+                            child->layout.maxWidth);
+                        child->layout.finalizeSizes();
+                        // Re-measure children of this item because its size changed (stretch).
+                        // Both axes are authoritative here: height was resolved by the flex
+                        // algorithm and width was just set by stretch.
+                        engine->reMeasureChildren(child, true, true);
+                    }
+                }
+            }
+        }
+    }
+
+    // 递归：所有子项尺寸已解析，继续解析它们的子树
+    for (auto* ch : node->getFlowChildren()) {
+        if (ch->props().getDisplay() == ldt::FormattingContext::None) continue;
+        engine->resolvePhase(ch);
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// position 阶段：只定位子项并递归，不做任何尺寸解析。
+// 所有子项尺寸在 resolve 阶段已定，这里只摆 x/y（含 justify / align 偏移）。
+// ─────────────────────────────────────────────────────────────────────────
+void FlexLayout::positionFlex(BoxModelEngine* engine, ldt::ResolvedNode* node,
+                              float contentAbsoluteX, float contentAbsoluteY) {
+    if (!node) return;
+
+    const IPropertyProvider* prop = &node->props();
+    bool isRow = isRowDirection(prop->getFlexDirection());
+
+    bool reverse = isReverseDirection(prop->getFlexDirection());
+    bool isWrap = prop->getFlexWrap() != ldt::FlexWrap::NoWrap;
+    float gap = prop->getGap();
+    
+    float containerMain = isRow ? node->layout.computedWidth : node->layout.computedHeight;
+    float containerCross = isRow ? node->layout.computedHeight : node->layout.computedWidth;
+    
+    std::vector<FlexLine> lines;
+    collectFlexLines(node, containerMain, isRow, isWrap, gap, lines);
+
+    float currentCrossPos = 0;
+
+    for (auto& line : lines) {
+        float usedMain = line.mainSize;
+        float freeMain = containerMain - usedMain;
+
         float startOffset = 0;
         float gapStep = 0;
         ldt::JustifyContent justify = prop->getJustifyContent();
@@ -288,11 +380,8 @@ void FlexLayout::layoutFlex(BoxModelEngine* engine, ldt::ResolvedNode* node,
         float currentMainPos = startOffset;
         ldt::AlignItems alignItems = prop->getAlignItems();
 
-
-        float lineCrossSize = line.crossSize;
-        if (lines.size() == 1 && containerCross > lineCrossSize) {
-            lineCrossSize = containerCross;
-        }
+        // line cross（与 resolve 一致）：单行 = 容器交叉尺寸
+        float lineCrossSize = (lines.size() == 1) ? containerCross : line.crossSize;
 
         for (size_t i = 0; i < line.childIndices.size(); ++i) {
             size_t idx = line.childIndices[i];
@@ -302,41 +391,7 @@ void FlexLayout::layoutFlex(BoxModelEngine* engine, ldt::ResolvedNode* node,
             
             float alignOffset = 0;
             
-            if (alignItems == ldt::AlignItems::Stretch) {
-                float targetCross = lineCrossSize; 
-                const IPropertyProvider& childRes = child->props();
-                    if (isRow) {
-                    if (childRes.getDisplay() != ldt::FormattingContext::Inline && childRes.getHeight().isAuto()) {
-                         float availableForContent = targetCross - child->layout.margin.vertical() - child->layout.border.vertical() - child->layout.padding.vertical();
-                         child->layout.computedHeight = clampf_flex(
-                             std::max(0.0f, availableForContent),
-                             child->layout.minHeight,
-                             child->layout.maxHeight);
-                         child->layout.finalizeSizes();
-                         childCross = child->layout.getMarginBox().height;
-                         // Re-measure children of this item because its size changed (stretch).
-                         // Both axes are authoritative here: width was resolved by the flex
-                         // algorithm and height was just set by stretch.
-                         engine->reMeasureChildren(child, true, true);
-                    }
-                } else {
-                    if (childRes.getDisplay() != ldt::FormattingContext::Inline && childRes.getWidth().isAuto()) {
-                        float availableForContent = targetCross - child->layout.margin.horizontal() - child->layout.border.horizontal() - child->layout.padding.horizontal();
-                        child->layout.computedWidth = clampf_flex(
-                            std::max(0.0f, availableForContent),
-                            child->layout.minWidth,
-                            child->layout.maxWidth);
-                        child->layout.finalizeSizes();
-                        childCross = child->layout.getMarginBox().width;
-                        // Re-measure children of this item because its size changed (stretch).
-                        // Both axes are authoritative here: height was resolved by the flex
-                        // algorithm and width was just set by stretch.
-                        engine->reMeasureChildren(child, true, true);
-                    }
-                }
-            } else if (alignItems == ldt::AlignItems::Center) {
-
-
+            if (alignItems == ldt::AlignItems::Center) {
                 alignOffset = (lineCrossSize - childCross) / 2.0f;
             } else if (alignItems == ldt::AlignItems::FlexEnd) {
                 alignOffset = lineCrossSize - childCross;

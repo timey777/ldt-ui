@@ -77,6 +77,10 @@ void InlineLayout::measureInline(BoxModelEngine* engine, ldt::ResolvedNode* node
     float finalW = isInlineBlock ? maxLineW : (isfinite(containerW) ? min(maxLineW, containerW) : maxLineW);
     float finalH = totalH;
 
+    // 内在（内容）尺寸：与最终尺寸分离，供 resolve 阶段 / 调试使用
+    cl.intrinsicWidth = finalW;
+    cl.intrinsicHeight = finalH;
+
     cl.computedWidth = clampf_inline((requestedW == ldt::AUTO_SENTINEL) ? finalW : requestedW, cl.minWidth, cl.maxWidth);
     cl.computedHeight = clampf_inline((requestedH == ldt::AUTO_SENTINEL) ? finalH : requestedH, cl.minHeight, cl.maxHeight);
 }

@@ -16,8 +16,12 @@ public:
                              float availableForChildrenW, float availableForChildrenH,
                              float requestedW, float requestedH);
 
-    static void layoutFlex(BoxModelEngine* engine, ldt::ResolvedNode* node,
-                           float contentAbsoluteX, float contentAbsoluteY);
+    // resolve 阶段：自顶向下，只解析子项最终尺寸（grow/shrink/stretch + 交叉轴压缩），不定位。
+    static void resolveFlex(BoxModelEngine* engine, ldt::ResolvedNode* node);
+
+    // position 阶段：只定位子项并递归，不做任何尺寸解析。
+    static void positionFlex(BoxModelEngine* engine, ldt::ResolvedNode* node,
+                             float contentAbsoluteX, float contentAbsoluteY);
 
 private:
     struct FlexLine {

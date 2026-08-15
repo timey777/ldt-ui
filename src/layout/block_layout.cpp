@@ -59,6 +59,10 @@ void BlockLayout::measureBlock(BoxModelEngine* engine, ldt::ResolvedNode* node,
     float contentW = (requestedW == ldt::AUTO_SENTINEL) ? maxW : requestedW;
     float contentH = (requestedH == ldt::AUTO_SENTINEL) ? totalH : requestedH;
 
+    // 内在（内容）尺寸：与最终尺寸分离，供 resolve 阶段 / 调试使用
+    cl.intrinsicWidth = contentW;
+    cl.intrinsicHeight = contentH;
+
     cl.computedWidth = clampf_block(contentW, cl.minWidth, cl.maxWidth);
     cl.computedHeight = clampf_block(contentH, cl.minHeight, cl.maxHeight);
 }
