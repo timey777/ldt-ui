@@ -18,6 +18,7 @@
 #include <cstring>
 #include <chrono>
 #include <cstdlib>
+#include <cmath>
 #include <algorithm>
 #include "engine/resource_manager.h"
 #include "misc/logger.h"
