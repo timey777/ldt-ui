@@ -7,7 +7,6 @@
 #include <atomic>
 #include "ldt_export.h"
 #include "engine/core/coordinate_types.h"
-#include "misc/throttle.h"
 struct GLFWwindow;
 
 class Window;
@@ -22,6 +21,7 @@ namespace ldt {
     class Input;
     class MainScene;
     class DisplayList;
+    class RenderLoop;
 }
 class DocumentRuntime;
 class LDT_API Application {
@@ -46,6 +46,8 @@ public:
 
 private:
     static Application* s_instance;
+    // 渲染流程访问 Application 内部状态（窗口/图形上下文/合成器/待定状态）
+    friend class ldt::RenderLoop;
     // non-copyable
     Application(const Application&) = delete;
     Application& operator=(const Application&) = delete;
@@ -60,19 +62,19 @@ private:
     std::shared_ptr<ASTNode> m_ast;
     std::unique_ptr<ldt::Compositor> m_compositor;
     std::unique_ptr<ldt::ViewCoordinator> m_host;
+    std::unique_ptr<ldt::RenderLoop> m_renderLoop;
 
-    // ── Resize throttle: defer layout to main loop (at most once per frame) ──
+    // ── Pending resize: defer layout to main loop ──
     bool m_pendingResize = false;
     ldt::ViewportSizeDp m_pendingViewportSize{ { 0.0f }, { 0.0f } };
 
-    // ── Live resize: throttled synchronous relayout+repaint during OS drag ──
+    // ── Live resize: synchronous relayout+repaint during OS drag ──
     // While the user drag-resizes on Windows the main loop is blocked inside
     // glfwPollEvents (OS nested modal resize loop), so the resize callback must
-    // do the work synchronously (at most once per throttle interval) to keep the
-    // UI live. The main-loop pending flag remains as a fallback for the final size.
+    // do the work synchronously to keep the UI live. The main-loop pending flag
+    // remains as a fallback for the final size.
     bool tryApplyLiveResize();
     void presentFrame();
-    ldt::Throttle m_resizeThrottle;                       // 默认 16ms（约 60fps）
     ldt::ViewportSizeDp m_appliedViewport{ { 0.0f }, { 0.0f } };
     std::atomic<bool>* m_pendingPresent = nullptr;
 
@@ -80,4 +82,11 @@ protected:
     // Encapsulate full initial render pipeline: AST -> render tree -> controls -> display list
     // Returns true on success and fills `outDisplayList`.
     virtual bool build(DocumentRuntime& runtime, ldt::Compositor& compositor, float width, float height);
+
+    // 创建每帧渲染循环（模板方法固化流程）。默认返回 DefaultRenderLoop；
+    // 子类可覆写以叠加额外渲染（例如 Dear ImGui 属性检查器）。
+    virtual std::unique_ptr<ldt::RenderLoop> createRenderLoop();
+
+    // 暴露窗口句柄，便于叠加层初始化（例如 ImGui 需要 GLFWwindow*）。
+    GLFWwindow* getWindowHandle() const;
 };

@@ -1,5 +1,6 @@
 ﻿// application.cpp
 #include "application.h"
+#include "render/render_loop.h"
 
 #include <iostream>
 #include <fstream>
@@ -64,6 +65,11 @@ Application::~Application()
     s_instance = nullptr;
 }
 
+GLFWwindow* Application::getWindowHandle() const
+{
+    return m_window ? m_window->get() : nullptr;
+}
+
 static void registerAllParsers()
 {
     ParserRegistry::instance().registerParser("import", std::make_shared<ImportParser>());
@@ -102,9 +108,9 @@ void Application::framebuffer_size_callback(GLFWwindow* window, int width, int h
 
     // ── Live resize ──
     // During an OS drag-resize the main loop is blocked inside glfwPollEvents
-    // (Windows nested modal resize loop), so a throttled synchronous relayout +
-    // repaint here keeps the UI live while dragging. Outside a drag this is a
-    // cheap no-op (or a throttled duplicate) that the main-loop fallback covers.
+    // (Windows nested modal resize loop), so a synchronous relayout + repaint
+    // here keeps the UI live while dragging. Outside a drag this is a cheap
+    // no-op that the main-loop fallback covers.
     s_instance->tryApplyLiveResize();
 }
 
@@ -123,10 +129,6 @@ bool Application::tryApplyLiveResize()
         m_pendingResize = false;
         return false;
     }
-
-    // Throttle: skip if a live relayout happened very recently. The pending flag
-    // stays set, so the main loop (or the next drag event) applies the latest size.
-    if (!m_resizeThrottle.tryAcquire()) return false;
 
     m_pendingResize = false;
     m_appliedViewport = vp;
@@ -403,58 +405,21 @@ int Application::run(int argc, char* argv[])
         return -1;
     }
 
+    // 创建每帧渲染循环（默认固化流程；子类可覆写 createRenderLoop() 叠加自定义渲染）
+    m_renderLoop = createRenderLoop();
+
     // Main loop (event + dirty-flag driven rendering)
     while (!m_window->shouldClose())
     {
         // 1) Process OS/window events (keep this call as required)
         m_window->pollEvents();
 
-        auto currentScene = Stage::getInstance().currentScene();
-
-        // 2) Advance animations (if any). If an animation needs advancing, it
-        //    will enqueue a paint request via UpdateScheduler, then host handles it.
-        bool hasAnimation = false;
-        if (currentScene && currentScene->getControlManager())
-        {
-            hasAnimation = currentScene->getControlManager()->processAnimatedControls();
-            if (hasAnimation)
-            {
-                UpdateScheduler::getInstance().requestPaint();
-            }
-        }
-
-        // 3) Handle pending resize (throttled: at most once per frame)
-        if (m_pendingResize) {
-            m_pendingResize = false;
-            if (m_host && g_documentRuntime) {
-                PerfWatch _w("resize");
-                m_host->handleResize(m_pendingViewportSize);
-                // PerfWatch destructor auto-logs the total
-            }
-        }
-
-        // 4) Handle scheduled layout updates
-        auto updatePlan = UpdateScheduler::getInstance().consumePendingPlan();
-        if (m_host) {
-            m_host->apply(updatePlan);
-        }
-
-        // 3a) Handle deferred node removals
-        ControlFactory::getInstance()->executePendingRemovals();
-
-        // 4) If any subsystem requested a paint/repaint (input, resize, style change,
-        //    animation), compositor will have received a DisplayList via the host
-        //    and the host set `pendingPresent`.
-        if (pendingPresent.exchange(false))
-        {
-            presentFrame();
-            // continue immediately to process any newly queued events
-            continue;
-        }
-
-        // 5) Idle: no dirty state and no animations — yield CPU without busy-waiting.
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        // 2) 渲染流程（动画/resize/布局更新/present/空闲）由 RenderLoop 统一驱动
+        m_renderLoop->runFrame();
     }
+
+    // 叠加层清理（在图形上下文关闭之前）
+    m_renderLoop->onShutdown();
 
     m_graphicsContext->shutdown();
     // prefer instance-level quit (Window destructor will also call quit())
@@ -466,5 +431,12 @@ int Application::run(int argc, char* argv[])
 bool Application::build(DocumentRuntime& runtime, ldt::Compositor& compositor, float width, float height)
 {
     return true;
+}
+
+std::unique_ptr<RenderLoop> Application::createRenderLoop()
+{
+    // 默认渲染循环：保持固化流程，无任何叠加层。
+    // 子类可覆写此方法返回自定义 RenderLoop（例如叠加 Dear ImGui 属性检查器）。
+    return std::make_unique<DefaultRenderLoop>(*this);
 }
 
