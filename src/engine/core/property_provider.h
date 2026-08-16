@@ -54,6 +54,10 @@ namespace ldt {
         virtual float getFlexGrow() const = 0;
         virtual float getFlexShrink() const = 0;
         virtual float getGap() const = 0;
+
+        // --- Grid 布局属性 ---
+        virtual std::string getGridTemplateColumns() const = 0;
+        virtual std::string getGridTemplateRows() const = 0;
     };
 
 

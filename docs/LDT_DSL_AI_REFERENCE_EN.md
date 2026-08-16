@@ -198,6 +198,35 @@ These can be used in `@layout` blocks or inlined in node attributes.
 | **`wrap-reverse`** | Enum exists but cross-axis may be non-standard | Prefer wrap |
 | **Flex child `margin:auto`** | Does not absorb remaining space | Normal box-model behavior only |
 
+### 7.3 Grid Implementation Details & Limitations
+
+#### Implemented Features
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| `grid-template-columns` | ✅ | px / % / fr / auto tracks, space-separated |
+| `grid-template-rows` | ✅ | Same as above; row height is content-driven when omitted |
+| `gap` | ✅ | Uniform row/column spacing; participates in remaining-space calculation |
+| Auto placement | ✅ | Row-major cell filling |
+| Implicit rows | ✅ | Auto rows are appended when items exceed the declared rows |
+| Stretch | ✅ | Auto-sized items fill their cell by default (minus own margin/border/padding) |
+
+#### fr Allocation Rules
+
+- Fixed tracks (px / % / auto) claim space first
+- Remaining space = container content size − fixed tracks total − gap total, distributed to `fr` tracks proportionally to their `fr` values
+- When the container size is unknown (auto), `fr` tracks resolve to 0 and the container width is decided by px / auto tracks
+
+#### ⚠️ Not Implemented
+
+| Missing Feature | Impact |
+|----------------|--------|
+| `grid-column` / `grid-row` | Cannot place or span items manually; auto placement only |
+| `minmax()` | Track min/max sizes not supported |
+| `grid-auto-rows` | Implicit row height is always content-driven |
+| `grid-template-areas` | Named areas not supported |
+| `justify-items` / `align-items` / `justify-content` / `align-content` | Alignment within cells / of the whole grid is not configurable |
+
 ---
 
 ## 8. Layout Algorithm Behavior
@@ -209,7 +238,7 @@ Deterministic rules: `width`/`height` are border-box preferred sizes; min-size d
 | **Block** | `block` (default) | Vertically stacked. Children fill parent width by default; height is content-driven |
 | **Flex** | `flex` | Flexbox layout (non-standard CSS subset). See §7. Does not support baseline/align-self/flex-basis/order/align-content |
 | **Inline** | `inline` | Horizontal flow layout. Children wrap automatically, similar to text flow |
-| **Grid** | `grid` | Grid layout (template string defined) |
+| **Grid** | `grid` | Two-dimensional grid layout. Supports px/%/fr/auto tracks, gap, auto-placement, implicit rows, stretch (see §7.3) |
 | **Hidden** | `none` | Excluded from layout and rendering |
 
 Box model (outside → inside): **margin → border → padding → content**

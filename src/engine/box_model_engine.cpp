@@ -3,6 +3,7 @@
 #include "layout/flex_layout.h"
 #include "layout/inline_layout.h"
 #include "layout/block_layout.h"
+#include "layout/grid_layout.h"
 #include "misc/image_util.h"
 #include <algorithm>
 #include <cmath>
@@ -350,6 +351,9 @@ void BoxModelEngine::measurePhase(ldt::ResolvedNode* node, float parentContentWi
 	if (myCtx == ldt::FormattingContext::Flex) {
 		FlexLayout::measureFlex(this, node, availW, availH, requestedW, requestedH);
 	}
+	else if (myCtx == ldt::FormattingContext::Grid) {
+		GridLayout::measureGrid(this, node, availW, availH, requestedW, requestedH);
+	}
 	else if (myCtx == ldt::FormattingContext::Inline) {
 		InlineLayout::measureInline(this, node, availW, availH, requestedW, requestedH);
 	}
@@ -417,6 +421,8 @@ void BoxModelEngine::resolvePhase(ldt::ResolvedNode* node) {
 
 	if (prop->getDisplay() == ldt::FormattingContext::Flex) {
 		FlexLayout::resolveFlex(this, node);
+	} else if (prop->getDisplay() == ldt::FormattingContext::Grid) {
+		GridLayout::resolveGrid(this, node);
 	} else {
 		// block / inline：子项尺寸已由 measure 阶段确定，递归解析子树
 		for (auto* ch : node->getFlowChildren()) {
@@ -461,6 +467,9 @@ void BoxModelEngine::layoutPhase(ldt::ResolvedNode* node, float parentContentX, 
 
 	if (isFlex) {
 		FlexLayout::positionFlex(this, node, contentAbsoluteX, contentAbsoluteY);
+	}
+	else if (display == ldt::FormattingContext::Grid) {
+		GridLayout::positionGrid(this, node, contentAbsoluteX, contentAbsoluteY);
 	}
 	else if (isInline) {
 		InlineLayout::layoutInline(this, node, contentAbsoluteX, contentAbsoluteY);
@@ -547,6 +556,8 @@ void BoxModelEngine::reMeasureChildren(ldt::ResolvedNode* node, bool widthDefini
     // Dispatch
     if (ctx == ldt::FormattingContext::Flex) {
         FlexLayout::measureFlex(this, node, availW, availH, requestedW, requestedH);
+    } else if (ctx == ldt::FormattingContext::Grid) {
+        GridLayout::measureGrid(this, node, availW, availH, requestedW, requestedH);
     } else if (ctx == ldt::FormattingContext::Inline) {
         InlineLayout::measureInline(this, node, availW, availH, requestedW, requestedH);
     } else {

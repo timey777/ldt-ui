@@ -23,6 +23,10 @@ ldt_test_runner
 |------|---------|
 | `layout/flex_basic` | flex-direction:row 子节点水平排列 |
 | `layout/flex_shrink` | flex-shrink 按比例收缩 |
+| `layout/grid_fr_even_split` | 1fr 1fr 1fr 均分容器宽度，项 stretch 填满单元格 |
+| `layout/grid_px_fr_mix` | 100px 固定轨道 + fr 均分剩余空间 |
+| `layout/grid_gap` | gap 参与 fr 剩余空间计算 |
+| `layout/grid_auto_flow_wraps_to_new_row` | 项超列数自动换行到下一行（隐式行） |
 
 ### text/ — 文本测量行为
 

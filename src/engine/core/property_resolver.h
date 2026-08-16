@@ -55,6 +55,10 @@ public:
     float getFlexShrink() const override { return node->layoutRules.flexShrink; }
     float getGap() const override { return node->layoutRules.gap; }
 
+    // Grid 布局
+    std::string getGridTemplateColumns() const override { return node->layoutRules.gridTemplateColumns; }
+    std::string getGridTemplateRows() const override { return node->layoutRules.gridTemplateRows; }
+
 private:
     const ResolvedNode* node;
 };

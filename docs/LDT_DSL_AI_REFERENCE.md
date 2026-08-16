@@ -198,6 +198,35 @@ type(attr) { child1, child2, child3(id="x") }
 | **`wrap-reverse`** | 枚举存在但交叉轴可能非标准 | 优先用 wrap |
 | **flex 子元素 `margin:auto`** | 不吸收剩余空间 | 仅普通盒模型行为 |
 
+### 7.3 Grid 实现细节与限制
+
+#### 已实现的特性
+
+| 特性 | 状态 | 说明 |
+|------|------|------|
+| `grid-template-columns` | ✅ | px / % / fr / auto 轨道，空格分隔多列 |
+| `grid-template-rows` | ✅ | 同上；缺省时行高按内容 |
+| `gap` | ✅ | 统一行列间距，参与剩余空间计算 |
+| 自动放置 | ✅ | 行优先（row-major）填充单元格 |
+| 隐式行 | ✅ | 项超出行数自动补 auto 行 |
+| stretch | ✅ | auto 尺寸项默认填满单元格（扣除自身 margin/border/padding） |
+
+#### fr 分配规则
+
+- 固定轨道（px / % / auto）先占据空间
+- 剩余空间 = 容器内容尺寸 − 固定轨道合计 − gap 合计，按 `fr` 值比例分配给 fr 轨道
+- 容器尺寸未知（auto）时 fr 轨道取 0，容器宽度由 px / auto 轨道决定
+
+#### ⚠️ 未实现
+
+| 缺失特性 | 影响 |
+|----------|------|
+| `grid-column` / `grid-row` | 无法手动定位/跨越，仅自动放置 |
+| `minmax()` | 无法约束轨道最小/最大尺寸 |
+| `grid-auto-rows` | 隐式行高固定为内容 |
+| `grid-template-areas` | 无命名区域 |
+| `justify-items` / `align-items` / `justify-content` / `align-content` | 单元格内与网格整体对齐不可调 |
+
 ---
 
 ## 8. 布局算法行为
@@ -209,7 +238,7 @@ type(attr) { child1, child2, child3(id="x") }
 | **Block** | `block`（默认） | 垂直堆叠。子元素宽度默认撑满父容器，高度由内容决定 |
 | **Flex** | `flex` | 弹性布局（非标准 CSS Flexbox 子集）。详见第 7 节。不支持 baseline/align-self/flex-basis/order/align-content |
 | **Inline** | `inline` | 水平流式排列。子元素自动换行，类似文字流 |
-| **Grid** | `grid` | 网格布局（模板字符串定义） |
+| **Grid** | `grid` | 二维网格布局。支持 px/%/fr/auto 轨道、gap、自动放置、隐式行、stretch（详见 7.3 节） |
 | **隐藏** | `none` | 不参与布局和渲染 |
 
 盒模型（由外向内）：**margin → border → padding → content**

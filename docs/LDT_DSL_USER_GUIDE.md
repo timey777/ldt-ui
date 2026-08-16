@@ -360,7 +360,57 @@ LDT DSL 支持以下五种单位：
 
 适用于工具栏、导航栏、卡片网格等需要灵活对齐的场景。
 
-### 8.3 Inline 布局
+### 8.3 Grid 布局
+
+`display: grid` 启用二维网格布局。**注意**：LDT 的 Grid 是最小实现——行和列同时定义，子元素按源码顺序自动填入单元格，不实现完整的 CSS Grid 标准。
+
+#### 轨道模板
+
+`grid-template-columns` 定义列轨道，`grid-template-rows` 定义行轨道，多个值用空格分隔：
+
+| 轨道值 | 说明 |
+|--------|------|
+| `100px` | 固定宽度 |
+| `50%` | 相对容器内容宽度 |
+| `1fr` | 弹性轨道：按比例分配剩余空间（如 `1fr 2fr` 表示第二列是第一列的 2 倍） |
+| `auto` | 由该轨道上内容最宽的项决定 |
+
+不写 `grid-template-rows` 时，行高由内容决定。
+
+#### 行为
+
+- **自动放置**：子元素从左到右、从上到下填入单元格，占满一列自动换行
+- **隐式行**：子元素数量超过定义行数时自动创建新行，行高按内容
+- **stretch**：`width`/`height` 为 auto 的项默认拉伸填满所在单元格（扣除自身 margin/border/padding）
+- **gap**：统一设置行与列之间的间距，参与剩余空间计算
+
+#### 示例
+
+```ldt
+@style {
+    .grid { width: 100%; height: 100%; }
+}
+@layout {
+    .grid { display: grid; grid-template-columns: 200px 1fr 1fr; gap: 8px; }
+}
+panel:grid(class="grid") {
+    panel:sidebar(class="sidebar"),
+    panel:item1(class="card"),
+    panel:item2(class="card")
+}
+```
+
+#### 限制
+
+| 不支持的特性 | 说明 |
+|-------------|------|
+| `grid-column` / `grid-row` | 无法手动指定位置或跨越，仅自动放置 |
+| `grid-template-areas` | 不支持命名区域 |
+| `minmax()` | 不支持轨道最小/最大尺寸 |
+| `grid-auto-rows` | 隐式行高固定按内容 |
+| `justify-items` / `align-items` / `justify-content` / `align-content` | 单元格内与网格整体对齐不可调，统一 stretch |
+
+### 8.4 Inline 布局
 
 `display: inline` 启用行内布局。特性：
 
@@ -370,7 +420,7 @@ LDT DSL 支持以下五种单位：
 
 适用于标签组、文字+图标混合排列等场景。
 
-### 8.4 盒模型
+### 8.5 盒模型
 
 每个控件都是一个矩形盒子，从外到内分为四层：
 

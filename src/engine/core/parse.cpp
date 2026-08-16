@@ -46,6 +46,28 @@ static Attribute tokenToAttribute(const ldt::Token& tok) {
     }
 }
 
+// 收集属性值 token 直到 ';' / '}'，并智能转换为 Attribute：
+//   1 个 token   → tokenToAttribute（int / float / 字符串 / 布尔）
+//   多个 token   → 空格拼接为字符串（如 "1fr 1fr 1fr"、"10 20"）
+static Attribute parseValueAttribute(TokenStream& ts) {
+    std::vector<Token> valueToks;
+    while (!isSym(ts.peek(), ";") && !isSym(ts.peek(), "}")) {
+        const Token& t = ts.peek();
+        if (t.type == TokenType::Eof) break;
+        valueToks.push_back(t);
+        ts.next();
+    }
+    if (valueToks.size() == 1) {
+        return tokenToAttribute(valueToks[0]);
+    }
+    ostringstream valoss;
+    for (size_t i = 0; i < valueToks.size(); ++i) {
+        if (i > 0) valoss << " ";
+        valoss << valueToks[i].text;
+    }
+    return Attribute(valoss.str());
+}
+
 // (Stable id generation moved to resolved_tree.cpp)
 
 // ----------------- TokenStream 实现 -----------------
@@ -405,28 +427,8 @@ shared_ptr<ASTNode> StyleParser::parse(TokenStream& ts) const {
             if (!isSym(ts.peek(), ":")) throw runtime_error("Expected ':' in style rule");
             ts.next();
             
-            // 收集值的所有 token，然后智能转换
-            vector<Token> valueToks;
-            while (!isSym(ts.peek(), ";") && !isSym(ts.peek(), "}")) {
-                const Token& t = ts.peek();
-                if (t.type == TokenType::Eof) break;
-                valueToks.push_back(t);
-                ts.next();
-            }
-            
-            // 如果只有一个 token，使用智能转换
-            if (valueToks.size() == 1) {
-                rule->attrs[key] = tokenToAttribute(valueToks[0]);
-            }
-            // 多个 token，拼接为字符串（如 "10 20"）
-            else {
-                ostringstream valoss;
-                for (size_t i = 0; i < valueToks.size(); ++i) {
-                    if (i > 0) valoss << " ";
-                    valoss << valueToks[i].text;
-                }
-                rule->attrs[key] = Attribute(valoss.str());
-            }
+            // 收集值的所有 token，然后智能转换（支持 "1fr 1fr 1fr" 等多值）
+            rule->attrs[key] = parseValueAttribute(ts);
             
             if (isSym(ts.peek(), ";")) ts.next();
         }
@@ -463,9 +465,8 @@ shared_ptr<ASTNode> LayoutParser::parse(TokenStream& ts) const {
             if (!isSym(ts.peek(), ":")) throw runtime_error("Expected ':' in layout rule");
             ts.next();
             
-            // 根据 token 类型智能转换
-            Token valueTok = ts.next();
-            rule->attrs[key] = tokenToAttribute(valueTok);
+            // 收集值的所有 token，然后智能转换（支持 "1fr 1fr 1fr" 等多值，如 grid-template-columns）
+            rule->attrs[key] = parseValueAttribute(ts);
             
             if (isSym(ts.peek(), ";")) ts.next();
         }

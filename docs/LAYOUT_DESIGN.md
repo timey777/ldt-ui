@@ -53,6 +53,15 @@ Grow 和 shrink 相互独立，并且只作用于主轴。
 
 单行 flex 中，`align-items: stretch` 始终可以扩大 auto 交叉尺寸。只有子项的 `overflow` 为 `auto`、`scroll` 或 `hidden` 时才允许向容器交叉尺寸缩小，超出内容由该子项处理；`overflow: visible` 保留内容尺寸，溢出范围交给父级。
 
+## Grid 空间分配
+
+Grid 轨道尺寸遵循与 flex 相同的确定性原则：
+
+1. **固定轨道先占**：`px`、`%` 和 `auto` 轨道（内容尺寸）先占据空间；`auto` 轨道取该轨道上所有项内容尺寸的最大值。
+2. **剩余空间分配**：容器内容尺寸减去固定轨道与 gap 合计后，剩余空间按 `fr` 值比例分配给 `fr` 轨道；剩余为负时 `fr` 轨道取 0，溢出由容器 overflow 处理。
+3. **容器尺寸未知**：`fr` 和 `%` 轨道无法解析（取 0），容器内在尺寸由 `px`/`auto` 轨道决定——与 flex 的 auto 宽度取内容尺寸一致。
+4. **stretch**：`width`/`height` 为 auto 的项默认拉伸填满单元格（扣除自身 margin/border/padding），语义同 flex 的交叉轴 stretch。
+
 ## 滚动容器
 
 需要占用剩余空间的弹性滚动区域必须显式允许收缩：

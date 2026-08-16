@@ -53,6 +53,15 @@ If no eligible item remains, unresolved space becomes container overflow. Items 
 
 In a single flex line, `align-items: stretch` may always grow an auto cross size. It may reduce the item to the container cross size only when the item's `overflow` is `auto`, `scroll`, or `hidden`; that item then handles excess content. With `overflow: visible`, the content size is preserved and its overflow is propagated to the parent.
 
+## Grid Allocation
+
+Grid track sizing follows the same deterministic principles as flex:
+
+1. **Fixed tracks first**: `px`, `%`, and `auto` tracks (content-sized) claim space first; an `auto` track takes the largest content size among the items on that track.
+2. **Remaining-space allocation**: after subtracting fixed tracks and gaps from the container content size, the remaining space is distributed to `fr` tracks proportionally to their `fr` values; when the remainder is negative, `fr` tracks become 0 and the overflow is handled by the container's overflow.
+3. **Unknown container size**: `fr` and `%` tracks cannot resolve (treated as 0); the container's intrinsic size is decided by `px`/`auto` tracks — consistent with flex auto width being content-driven.
+4. **Stretch**: items with `width`/`height` set to auto stretch to fill their cell (minus their own margin/border/padding), matching flex cross-axis stretch semantics.
+
 ## Scroll Containers
 
 A flexible scroll region must opt into shrinking:

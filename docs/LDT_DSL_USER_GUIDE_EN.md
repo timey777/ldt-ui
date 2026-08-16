@@ -358,7 +358,57 @@ The following Flex features are **not yet implemented**:
 | `order` | Cannot change visual order of children; order follows source position |
 | `align-content` | Multi-line cross-axis distribution of rows is uncontrollable; simple stacking only |
 
-### 8.3 Inline Layout
+### 8.3 Grid Layout
+
+`display: grid` enables two-dimensional grid layout. **Note**: LDT's Grid is a minimal implementation — rows and columns are defined together and children are auto-placed into cells in source order; it does not implement the full CSS Grid standard.
+
+#### Track Templates
+
+`grid-template-columns` defines column tracks; `grid-template-rows` defines row tracks. Multiple values are space-separated:
+
+| Track value | Meaning |
+|-------------|---------|
+| `100px` | Fixed width |
+| `50%` | Percentage of the container content width |
+| `1fr` | Flexible track: distributes remaining space proportionally (e.g. `1fr 2fr` means the second column is twice as wide as the first) |
+| `auto` | Sized by the widest item on that track |
+
+When `grid-template-rows` is omitted, row heights are content-driven.
+
+#### Behavior
+
+- **Auto placement**: children fill cells left-to-right, top-to-bottom, wrapping to a new row when a column fills up
+- **Implicit rows**: extra children beyond the declared rows create new rows automatically, sized by content
+- **Stretch**: items with `width`/`height` set to auto stretch to fill their cell (minus their own margin/border/padding)
+- **gap**: uniform row/column spacing; participates in remaining-space calculation
+
+#### Example
+
+```ldt
+@style {
+    .grid { width: 100%; height: 100%; }
+}
+@layout {
+    .grid { display: grid; grid-template-columns: 200px 1fr 1fr; gap: 8px; }
+}
+panel:grid(class="grid") {
+    panel:sidebar(class="sidebar"),
+    panel:item1(class="card"),
+    panel:item2(class="card")
+}
+```
+
+#### Limitations
+
+| Unsupported Feature | Notes |
+|--------------------|-------|
+| `grid-column` / `grid-row` | Cannot place or span items manually; auto placement only |
+| `grid-template-areas` | Named areas not supported |
+| `minmax()` | Track min/max sizes not supported |
+| `grid-auto-rows` | Implicit row height is always content-driven |
+| `justify-items` / `align-items` / `justify-content` / `align-content` | Alignment within cells / of the whole grid is not configurable; uniform stretch |
+
+### 8.4 Inline Layout
 
 `display: inline` enables inline layout. Characteristics:
 
@@ -368,7 +418,7 @@ The following Flex features are **not yet implemented**:
 
 Suitable for tag groups, text + icon mixed arrangements, etc.
 
-### 8.4 Box Model
+### 8.5 Box Model
 
 Each widget is a rectangular box with four layers from outside to inside:
 
