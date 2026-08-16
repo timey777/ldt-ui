@@ -135,15 +135,9 @@ void FlexLayout::measureFlex(BoxModelEngine* engine, ldt::ResolvedNode* node,
 
     if (requestedW != ldt::AUTO_SENTINEL) {
         contentW = requestedW;
-    } else {
-        bool isInline = (prop->getDisplay() == ldt::FormattingContext::Inline);
-        // A block-level flex container with auto width should use the finite
-        // width offered by its parent. Overflowing children are represented by
-        // scrollWidth, not by expanding the container's computed width.
-        if (!isInline && isfinite(availableForChildrenW) && availableForChildrenW >= 0.0f) {
-            contentW = availableForChildrenW;
-        }
     }
+    // 宽度为 auto：保持按子项算出的内在尺寸（intrinsicWidth），不做块级 fill。
+    // 父级宽度只是约束；最终宽度由父级 flex 在 resolve 阶段的 grow/shrink 决定。
 
     
     if (requestedH != ldt::AUTO_SENTINEL) contentH = requestedH;
