@@ -530,10 +530,6 @@ public:
         if (!getScene()) return;
         auto measurer = getScene()->getTextMeasurer();
         if (!measurer) return;
-        
-        // Try to get IDrawer from measurer (assuming they are the same object)
-        IDrawer* drawer = dynamic_cast<IDrawer*>(measurer);
-        if (!drawer) return;
 
         float fontSize = fontSize_ > 0.0f ? fontSize_ : 14.0f;
         Font font;
@@ -556,7 +552,7 @@ public:
         // 不应影响光标定位、点击和选区逻辑
         preprocessLines(value_);
         
-        textLayout_ = drawer->createTextLayout(value_, font, params, maxWidth);
+        textLayout_ = measurer->createTextLayout(value_, font, params, maxWidth);
         float textWidth = textLayout_ ? textLayout_->getBounds().w : 0.0f;
         contentHeight_ = textLayout_ ? textLayout_->getBounds().h : 0.0f;
         float minContentHeight = std::max(lineHeight_, static_cast<float>(lines_.size()) * lineHeight_);

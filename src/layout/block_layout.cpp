@@ -5,6 +5,7 @@
 #include <cmath>
 #include <limits>
 #include <render/drawer.h>
+#include "misc/float_utils.h"
 #include "engine/core/resolved_tree.h"
 #include "engine/core/resolved_node.h"
 #include "engine/core/ast_node.h"
@@ -21,19 +22,6 @@ static float clampf_block(float v, float lo, float hi) {
     return v;
 }
 
-// Extract text for semantic nodes (same whitelist used elsewhere)
-static std::string extractNodeTextLocal(ldt::ResolvedNode* rn) {
-    if (!rn || !rn->astNode) return "";
-    std::string ttype = rn->astNode->type;
-    if (ttype == "text" || ttype == "label" || ttype == "button" || ttype == "input" || ttype == "textarea") {
-        if (auto a = rn->astNode->getAttribute("text")) { if (a->isString()) return a->as<std::string>(); }
-        if (auto a = rn->astNode->getAttribute("title")) { if (a->isString()) return a->as<std::string>(); }
-        if (auto a = rn->astNode->getAttribute("value")) { if (a->isString()) return a->as<std::string>(); }
-        if (auto a = rn->astNode->getAttribute("placeholder")) { if (a->isString()) return a->as<std::string>(); }
-    }
-    return "";
-}
-
 void BlockLayout::measureBlock(BoxModelEngine* engine, ldt::ResolvedNode* node,
                                float availableForChildrenW, float availableForChildrenH,
                                float requestedW, float requestedH) {
@@ -41,20 +29,42 @@ void BlockLayout::measureBlock(BoxModelEngine* engine, ldt::ResolvedNode* node,
     auto& cl = node->layout;
 
     // Measure children with width constraint = availableForChildrenW (if bounded)
+    // 混合排列：block 子元素独占一行（垂直堆叠）；inline 子元素形成行内流（水平并排，超宽换行）
     float maxW = 0;
     float totalH = 0;
+    float curLineW = 0.0f;
+    float lineH = 0.0f;
+
+    auto flushLine = [&]() {
+        if (curLineW > maxW) maxW = curLineW;
+        if (lineH > 0.0f) totalH += lineH;
+        curLineW = 0.0f;
+        lineH = 0.0f;
+    };
+
     if (!node->getFlowChildren().empty()) {
         for (auto* ch : node->getFlowChildren()) {
             if (ch->props().getDisplay() == ldt::FormattingContext::None) continue;
             engine->measurePhase(ch, availableForChildrenW, availableForChildrenH, node->props().getDisplay(), requestedW != ldt::AUTO_SENTINEL, requestedH != ldt::AUTO_SENTINEL);
-            maxW = max(maxW, ch->layout.getMarginBox().width);
-            totalH += ch->layout.getMarginBox().height;
+            float itemW = ch->layout.getMarginBox().width;
+            float itemH = ch->layout.getMarginBox().height;
+
+            if (ch->props().getDisplay() == ldt::FormattingContext::Inline) {
+                // inline 子元素：加入当前行，超宽换行
+                if (isfinite(availableForChildrenW) && ldt::floatGreater(curLineW + itemW, availableForChildrenW) && curLineW > 0.0f) {
+                    flushLine();
+                }
+                curLineW += itemW;
+                lineH = std::max(lineH, itemH);
+            } else {
+                // block 子元素：先结束当前 inline 行，再独占一行
+                flushLine();
+                maxW = std::max(maxW, itemW);
+                totalH += itemH;
+            }
         }
     }
-
-
-    // else: leaf node. If it had text, BoxModelEngine already measured it and set requestedW/H (if they were auto).
-    // So we just use the requested sizes below.
+    flushLine();
 
     float contentW = (requestedW == ldt::AUTO_SENTINEL) ? maxW : requestedW;
     float contentH = (requestedH == ldt::AUTO_SENTINEL) ? totalH : requestedH;
@@ -72,13 +82,35 @@ void BlockLayout::layoutBlock(BoxModelEngine* engine, ldt::ResolvedNode* node,
     if (!engine || !node) return;
     auto& cl = node->layout;
 
+    // 混合排列：block 子元素独占一行（垂直堆叠）；inline 子元素水平并排（超宽换行）
+    float containerW = cl.getContentBox().width;
+    float curX = contentAbsoluteX;
     float curY = contentAbsoluteY;
+    float curLineH = 0.0f;
+
     for (auto* ch : node->getFlowChildren()) {
         if (ch->props().getDisplay() == ldt::FormattingContext::None) continue;
-        float parentForChildX = contentAbsoluteX;
-        float parentForChildY = curY;
-        engine->layoutPhase(ch, parentForChildX, parentForChildY);
-        curY += ch->layout.getMarginBox().height;
+        float itemW = ch->layout.getMarginBox().width;
+        float itemH = ch->layout.getMarginBox().height;
+
+        if (ch->props().getDisplay() == ldt::FormattingContext::Inline) {
+            // inline 子元素：水平并排，超宽换行
+            if (isfinite(containerW) && ldt::floatGreater(curX + itemW - contentAbsoluteX, containerW) && curX > contentAbsoluteX) {
+                curX = contentAbsoluteX;
+                curY += curLineH;
+                curLineH = 0.0f;
+            }
+            engine->layoutPhase(ch, curX, curY);
+            curX += itemW;
+            curLineH = std::max(curLineH, itemH);
+        } else {
+            // block 子元素：先结束当前 inline 行，再独占一行
+            curX = contentAbsoluteX;
+            curY += curLineH;
+            curLineH = 0.0f;
+            engine->layoutPhase(ch, contentAbsoluteX, curY);
+            curY += itemH;
+        }
     }
 }
 

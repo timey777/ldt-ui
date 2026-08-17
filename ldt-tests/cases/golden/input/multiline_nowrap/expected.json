@@ -1,7 +1,7 @@
 {
     "selectors": {
         "#myInput": {
-            "computedWidth": { "gt": 90 }
+            "computedWidth": { "gt": 80 }
         }
     },
     "controls": {

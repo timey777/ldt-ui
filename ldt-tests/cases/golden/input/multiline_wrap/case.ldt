@@ -4,5 +4,5 @@
 input:myInput(
     class="my-input",
     value="aaaa bbbb cccc dddd eeee ffff",
-    type="multiline"
+    type="textarea"
 )

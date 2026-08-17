@@ -2,6 +2,7 @@
 
 #include <string>
 #include <memory>
+#include "render/text_layout.h"
 
 // 简单的文本度量结构
 struct TextMetrics {
@@ -26,6 +27,13 @@ public:
     virtual TextMetrics measureText(const std::u32string& text, const FontDesc& font, float wrapWidth = -1.0f) = 0;
     virtual TextMetrics measureText(const std::string& utf8text, const FontDesc& font, float wrapWidth = -1.0f) = 0;
     virtual float getLineHeight(const FontDesc& font) = 0;
+
+    // createTextLayout: build a reusable text layout (wrapping, alignment,
+    // line height). Decouples text geometry from IDrawer so a text measurer
+    // alone is sufficient for layout-aware controls (Input/Text).
+    virtual std::shared_ptr<ITextLayout> createTextLayout(
+        const std::string& text, const Font& font,
+        const TextLayoutParams& params, float maxWidth = -1.0f) = 0;
 };
 
 // No default implementation here; concrete implementations may be

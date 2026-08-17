@@ -200,9 +200,6 @@ private:
         if (!getScene()) return;
         auto measurer = getScene()->getTextMeasurer();
         if (!measurer) return;
-        
-        IDrawer* drawer = dynamic_cast<IDrawer*>(measurer);
-        if (!drawer) return;
 
         float fontSize = fontSize_ > 0.0f ? fontSize_ : 14.0f;
         Font font;
@@ -231,7 +228,7 @@ private:
             lastLayoutWidth_ = -1.0f;
         }
 
-        textLayout_ = drawer->createTextLayout(text_, font, params, maxWidth);
+        textLayout_ = measurer->createTextLayout(text_, font, params, maxWidth);
         layoutDirty_ = false;
     }
 };
