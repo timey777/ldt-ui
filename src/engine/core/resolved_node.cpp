@@ -39,6 +39,7 @@ static void mergeStyle(ldt::ComputedStyle& target, const ldt::StyleDelta& delta)
     if (delta.has(ldt::StyleProp::LineHeight)) target.lineHeight = delta.lineHeight;
     if (delta.has(ldt::StyleProp::FontFamily)) target.fontFamily = delta.fontFamily;
     if (delta.has(ldt::StyleProp::FontWeight)) target.fontWeight = delta.fontWeight;
+    if (delta.has(ldt::StyleProp::FontStyle)) target.fontStyle = delta.fontStyle;
     if (delta.has(ldt::StyleProp::TextAlign)) target.textAlign = delta.textAlign;
     if (delta.has(ldt::StyleProp::Width)) target.width = delta.width;
     if (delta.has(ldt::StyleProp::Height)) target.height = delta.height;
@@ -83,6 +84,7 @@ static void mergeStyleWithOrder(ldt::ComputedStyle& target,
         {StyleProp::LineHeight, [](ldt::ComputedStyle& t, const ldt::StyleDeclaration& d) { t.lineHeight = d.lineHeight; }},
         {StyleProp::FontFamily, [](ldt::ComputedStyle& t, const ldt::StyleDeclaration& d) { t.fontFamily = d.fontFamily; }},
         {StyleProp::FontWeight, [](ldt::ComputedStyle& t, const ldt::StyleDeclaration& d) { t.fontWeight = d.fontWeight; }},
+        {StyleProp::FontStyle, [](ldt::ComputedStyle& t, const ldt::StyleDeclaration& d) { t.fontStyle = d.fontStyle; }},
         {StyleProp::TextAlign, [](ldt::ComputedStyle& t, const ldt::StyleDeclaration& d) { t.textAlign = d.textAlign; }},
         {StyleProp::Width, [](ldt::ComputedStyle& t, const ldt::StyleDeclaration& d) { t.width = d.width; }},
         {StyleProp::Height, [](ldt::ComputedStyle& t, const ldt::StyleDeclaration& d) { t.height = d.height; }},
@@ -269,6 +271,7 @@ void ResolvedNode::applyInheritedStyles() {
     if (isNotSet(StyleProp::FontSize))    finalStyle.fontSize = pStyle.fontSize;
     if (isNotSet(StyleProp::FontFamily))  finalStyle.fontFamily = pStyle.fontFamily;
     if (isNotSet(StyleProp::FontWeight))  finalStyle.fontWeight = pStyle.fontWeight;
+    if (isNotSet(StyleProp::FontStyle))   finalStyle.fontStyle = pStyle.fontStyle;
     if (isNotSet(StyleProp::LineHeight))  finalStyle.lineHeight = pStyle.lineHeight;
     if (isNotSet(StyleProp::TextAlign))   finalStyle.textAlign = pStyle.textAlign;
     if (isNotSet(StyleProp::Visible))     finalStyle.visible = pStyle.visible;

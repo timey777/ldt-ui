@@ -285,6 +285,7 @@ static void applyPropertiesToComputedStyle(ldt::ComputedStyle &out, const std::m
             }
             else if (k == "font-family") { if (v.isString()) out.fontFamily = v.as<std::string>(); }
             else if (k == "font-weight") { if (v.isString()) out.fontWeight = ldt::fontWeightFromString(v.as<std::string>()); }
+            else if (k == "font-style") { if (v.isString()) out.fontStyle = ldt::fontStyleFromString(v.as<std::string>()); }
             else if (k == "text-align") { if (v.isString()) out.textAlign = ldt::textAlignFromString(v.as<std::string>()); }
             else if (k == "width") {
                 (void)applyLayoutUnitField(out.width, v);
@@ -403,6 +404,7 @@ static void applyPropertiesToStyleDelta(ldt::StyleDelta &out, const std::map<std
             }
             else if (k == "font-family") { if (v.isString()) { out.fontFamily = v.as<std::string>(); out.set(ldt::StyleProp::FontFamily); } }
             else if (k == "font-weight") { if (v.isString()) { out.fontWeight = ldt::fontWeightFromString(v.as<std::string>()); out.set(ldt::StyleProp::FontWeight); } }
+            else if (k == "font-style") { if (v.isString()) { out.fontStyle = ldt::fontStyleFromString(v.as<std::string>()); out.set(ldt::StyleProp::FontStyle); } }
             else if (k == "text-align") { if (v.isString()) { out.textAlign = ldt::textAlignFromString(v.as<std::string>()); out.set(ldt::StyleProp::TextAlign); } }
             else if (k == "width") {
                 if (applyLayoutUnitField(out.width, v)) out.set(ldt::StyleProp::Width);
@@ -500,6 +502,7 @@ static bool isInheritableProperty(std::string_view name) {
         "font-size",
         "font-family",
         "font-weight",
+        "font-style",
         "line-height",
         "text-align",
         "visible"
@@ -896,6 +899,7 @@ static std::optional<ldt::StyleProp> attributeToStyleProp(std::string_view key) 
     if (key == "line-height") return ldt::StyleProp::LineHeight;
     if (key == "font-family") return ldt::StyleProp::FontFamily;
     if (key == "font-weight") return ldt::StyleProp::FontWeight;
+    if (key == "font-style") return ldt::StyleProp::FontStyle;
     if (key == "text-align") return ldt::StyleProp::TextAlign;
     if (key == "width") return ldt::StyleProp::Width;
     if (key == "height") return ldt::StyleProp::Height;

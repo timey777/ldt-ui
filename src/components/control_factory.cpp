@@ -214,6 +214,8 @@ namespace ldt
 			auto text = std::shared_ptr<Text>(new Text());
 			text->setTextColor(resolvedNode->finalStyle.textColor);
 			text->setFontSize(resolvedNode->finalStyle.fontSize);
+			text->setBold(resolvedNode->finalStyle.fontWeight == ldt::FontWeight::Bold || resolvedNode->finalStyle.fontWeight == ldt::FontWeight::W700);
+			text->setItalic(resolvedNode->finalStyle.fontStyle == ldt::FontStyle::Italic || resolvedNode->finalStyle.fontStyle == ldt::FontStyle::Oblique);
 			text->setLineHeight(resolvedNode->finalStyle.lineHeight);
 			text->setWrap(resolvedNode->layout.wrap);
 			text->setFontFamily(resolvedNode->finalStyle.fontFamily);

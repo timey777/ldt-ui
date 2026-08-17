@@ -122,6 +122,12 @@ FontWeight fontWeightFromString(const std::string& s) {
     return FontWeight::Normal;
 }
 
+FontStyle fontStyleFromString(const std::string& s) {
+    if (s == "italic") return FontStyle::Italic;
+    if (s == "oblique") return FontStyle::Oblique;
+    return FontStyle::Normal;
+}
+
 TextAlign textAlignFromString(const std::string& s) {
     if (s == "center") return TextAlign::Center;
     if (s == "right") return TextAlign::Right;

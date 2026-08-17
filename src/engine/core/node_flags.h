@@ -84,6 +84,12 @@ enum class FontWeight : uint8_t {
     W100, W200, W300, W400, W500, W600, W700, W800, W900
 };
 
+enum class FontStyle : uint8_t {
+    Normal,
+    Italic,
+    Oblique
+};
+
 enum class TextAlign : uint8_t {
     Left,
     Center,
@@ -92,6 +98,7 @@ enum class TextAlign : uint8_t {
 };
 
 FontWeight fontWeightFromString(const std::string& s);
+FontStyle fontStyleFromString(const std::string& s);
 TextAlign textAlignFromString(const std::string& s);
 Overflow overflowFromString(const std::string& s);
 FormattingContext displayStringToEnum(const std::string& d);

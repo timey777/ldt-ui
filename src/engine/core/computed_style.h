@@ -30,6 +30,7 @@ enum class StyleProp : uint32_t {
     LineHeight,
     FontFamily,
     FontWeight,
+    FontStyle,
     TextAlign,
     Width,
     Height,
@@ -62,6 +63,7 @@ struct ComputedStyle {
     float lineHeight = 0.0f;
     std::string fontFamily;
     FontWeight fontWeight = FontWeight::Normal;
+    FontStyle fontStyle = FontStyle::Normal;
     TextAlign textAlign = TextAlign::Left;
     LayoutUnit width = LayoutUnit::autoUnit();
     LayoutUnit height = LayoutUnit::autoUnit();

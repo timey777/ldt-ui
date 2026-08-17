@@ -37,6 +37,7 @@ public:
     float getLineHeight() const override { return node->finalStyle.lineHeight; }
     std::string getFontFamily() const override { return node->finalStyle.fontFamily; }
     FontWeight getFontWeight() const override { return node->finalStyle.fontWeight; }
+    FontStyle getFontStyle() const override { return node->finalStyle.fontStyle; }
     TextAlign getTextAlign() const override { return node->finalStyle.textAlign; }
     Overflow getOverflow() const override { return node->finalStyle.overflow; }
 

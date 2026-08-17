@@ -106,6 +106,7 @@ void BoxModelEngine::measureContent(ldt::ResolvedNode* node, float& requestedW, 
 		font.family = prop->getFontFamily();
 		font.size = prop->getFontSize();
 		font.bold = (prop->getFontWeight() == ldt::FontWeight::Bold || prop->getFontWeight() == ldt::FontWeight::W700);
+		font.italic = (prop->getFontStyle() == ldt::FontStyle::Italic || prop->getFontStyle() == ldt::FontStyle::Oblique);
 
 		float wrapW = -1.0f;
 		if (node->layout.wrap) {
@@ -166,6 +167,7 @@ void BoxModelEngine::measureContent(ldt::ResolvedNode* node, float& requestedW, 
 		font.family = prop->getFontFamily();
 		font.size = prop->getFontSize() > 0.0f ? prop->getFontSize() : 14.0f;
 		font.bold = (prop->getFontWeight() == ldt::FontWeight::Bold || prop->getFontWeight() == ldt::FontWeight::W700);
+		font.italic = (prop->getFontStyle() == ldt::FontStyle::Italic || prop->getFontStyle() == ldt::FontStyle::Oblique);
 
 		// Ensure we always have a baseline height even when text is empty and height is auto
 		float defaultLineH = font.size * 1.2f;

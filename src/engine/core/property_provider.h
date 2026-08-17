@@ -37,6 +37,7 @@ namespace ldt {
         virtual float getLineHeight() const = 0;
         virtual std::string getFontFamily() const = 0;
         virtual FontWeight getFontWeight() const = 0;
+        virtual FontStyle getFontStyle() const = 0;
         virtual TextAlign getTextAlign() const = 0;
         virtual Overflow getOverflow() const = 0;
 
