@@ -1,6 +1,9 @@
 #pragma once
 
 #include "abstract_control.h"
+#include "engine/core/resolved_node.h"
+#include "engine/resource_manager.h"
+#include "misc/logger.h"
 
 namespace ldt {
 
@@ -16,6 +19,24 @@ protected:
     Image() = default;
     explicit Image(const std::string& src) : src_(src) {}
     friend class ControlFactory;
+
+    // 运行时 src 属性变化（DSL 更新/动态换图）时重新同步并预加载
+    void OnSyncFromResolvedNode(const ResolvedNode& rn) override {
+        if (!rn.astNode) return;
+        if (auto srcAttr = rn.astNode->getAttribute("src")) {
+            try {
+                if (srcAttr->isString()) {
+                    auto path = srcAttr->as<std::string>();
+                    if (!path.empty()) {
+                        setSrc(path);
+                        ResourceManager::getInstance().preloadImage(path);
+                    }
+                }
+            } catch (...) {
+                LDT_ERROR("Image::OnSyncFromResolvedNode: failed to update src");
+            }
+        }
+    }
 
     void onRender(DisplayList& displayList, const ui::Rect& clip) const override {
         if (src_.empty()) return;

@@ -42,6 +42,8 @@ public:
 protected:
     bool handleLocalMouseMove(ControlLocalPointDp point) override;
     bool handleLocalMouseButton(ControlLocalPointDp point, int button, int action) override;
+    // 运行时样式变化（hover/active 等）也需刷新字体属性
+    void OnSyncFromResolvedNode(const ResolvedNode& rn) override;
 
 private:
     friend class ComboBoxPopup;

@@ -11,6 +11,7 @@ struct ASTNode;
 namespace ldt {
 
 class Scene;
+class ResolvedNode;
 
 /**
  * @brief 控件抽象基类
@@ -44,6 +45,12 @@ protected:
      */
     virtual void onRender(DisplayList& displayList, const ui::Rect& clip) const = 0;
 
+    /**
+     * @brief 子类钩子：同步各自特有的、依赖布局的派生属性。
+     *        由 syncFromResolvedNode 在通用映射之后调用，子类无需再调用父类实现。
+     */
+    virtual void OnSyncFromResolvedNode(const ResolvedNode& rn) { (void)rn; }
+
 public:
     /**
      * @brief 每帧调用用于更新控件的动画/逻辑（无渲染），由 Scene 驱动
@@ -71,6 +78,13 @@ public:
      * @brief 获取控件类型名称
      */
     virtual std::string getTypeName() const = 0;
+
+    /**
+     * @brief 从 ResolvedNode 同步控件状态（通用映射，所有控件共享）。
+     *        由映射层（ControlFactory / TreeSynchronizer）在布局或变更后调用。
+     *        内部先处理基类通用属性，再调用子类钩子 OnSyncFromResolvedNode。
+     */
+    void syncFromResolvedNode(const ResolvedNode& rn);
 
     // 位置和大小
     virtual void setBounds(const ui::Rect& bounds);

@@ -45,26 +45,8 @@ namespace ldt
 	{
 		if (!rn || !ctrl)
 			return;
-		const auto &layout = rn->layout;
-		ctrl->setBounds(layout.getBorderBox());
-		ctrl->setScrollSize(layout.scroll.scrollWidth, layout.scroll.scrollHeight);
-		ctrl->setViewportSize(layout.viewportWidth, layout.viewportHeight);
-		ctrl->setScroll(layout.scroll.offsetX, layout.scroll.offsetY);
-
-		ctrl->setFillColor(rn->finalStyle.backgroundColor);
-		ctrl->setStrokeColor(rn->finalStyle.borderColor);
-		ctrl->setStrokeWidth(rn->finalStyle.borderWidth);
-		// borderRadius is now UIUnit, representing pixel values
-		ctrl->setCornerRadius(rn->finalStyle.borderRadius.toPx());
-
-		const bool displayNone = (rn->layoutRules.getDisplay() == ldt::FormattingContext::None);
-		ctrl->setVisible(rn->finalStyle.visible && !displayNone);
-
-		if (!rn->finalStyle.backgroundImage.empty())
-		{
-			ctrl->setBackgroundImage(rn->finalStyle.backgroundImage);
-			ResourceManager::getInstance().preloadImage(rn->finalStyle.backgroundImage);
-		}
+		// 通用映射在 AbstractControl::syncFromResolvedNode 中完成（基类通用 + 子类钩子）
+		ctrl->syncFromResolvedNode(*rn);
 	}
 
 	std::shared_ptr<AbstractControl> ControlFactory::CreateControlFromResolvedNode(ResolvedNode *resolvedNode)
@@ -212,17 +194,8 @@ namespace ldt
 		else if (ast->type == "text")
 		{
 			auto text = std::shared_ptr<Text>(new Text());
-			text->setTextColor(resolvedNode->finalStyle.textColor);
-			text->setFontSize(resolvedNode->finalStyle.fontSize);
-			text->setBold(resolvedNode->finalStyle.fontWeight == ldt::FontWeight::Bold || resolvedNode->finalStyle.fontWeight == ldt::FontWeight::W700);
-			text->setItalic(resolvedNode->finalStyle.fontStyle == ldt::FontStyle::Italic || resolvedNode->finalStyle.fontStyle == ldt::FontStyle::Oblique);
-			text->setLineHeight(resolvedNode->finalStyle.lineHeight);
-			text->setWrap(resolvedNode->layout.wrap);
-			text->setFontFamily(resolvedNode->finalStyle.fontFamily);
-			text->setAlignment(resolvedNode->finalStyle.textAlign);
-			text->setLayoutWidth(resolvedNode->layout.getBorderBox().width);
-			text->setPadding(resolvedNode->layout.padding.left, resolvedNode->layout.padding.top,
-							 resolvedNode->layout.padding.right, resolvedNode->layout.padding.bottom);
+			// 字体/布局派生属性（color/font-size/font-weight/wrap/alignment/padding 等）
+			// 统一由 Text::OnSyncFromResolvedNode 在每次布局后同步，此处不再重复设置。
 			if (ast->hasAttribute("value"))
 				text->setText(ast->getAttribute("value")->as<std::string>());
 			control = text;
@@ -259,8 +232,7 @@ namespace ldt
 					combo->setOptions(opts);
 				}
 			}
-			combo->setTextColor(resolvedNode->finalStyle.textColor);
-			combo->setFontSize(resolvedNode->finalStyle.fontSize);
+			// 字体属性由 ComboBox::OnSyncFromResolvedNode 统一同步
 			control = combo;
 		}
 		else if (ast->type == "radio")
@@ -301,10 +273,7 @@ namespace ldt
 				}
 				input->setWrap(w);
 			}
-			input->setTextColor(resolvedNode->finalStyle.textColor);
-			input->setFontSize(resolvedNode->finalStyle.fontSize);
-			input->setPadding(resolvedNode->layout.padding.left, resolvedNode->layout.padding.top,
-							  resolvedNode->layout.padding.right, resolvedNode->layout.padding.bottom);
+			// 字体属性与 padding 由 Input::OnSyncFromResolvedNode 统一同步（含通用层 padding）
 			control = input;
 		}
 		else

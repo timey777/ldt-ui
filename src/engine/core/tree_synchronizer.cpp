@@ -9,9 +9,7 @@
 #include "components/control_manager.h"
 #include "components/container_control.h"
 #include "components/control_factory.h"
-#include "components/image.h"
 #include "components/input.h"
-#include "engine/resource_manager.h"
 #include "misc/logger.h"
 #include "misc/perf_timer.h"
 
@@ -78,26 +76,6 @@ void TreeSynchronizer::updateControl(const std::shared_ptr<AbstractControl>& ctr
 
     ControlFactory::getInstance()->BindControlToResolvedNode(rn, ctrl);
     ControlFactory::getInstance()->SyncPropertiesFromResolvedNode(rn, ctrl);
-
-    // Image: update src and preload
-    if (ctrl->getTypeName() == "Image") {
-        auto imgCtrl = std::static_pointer_cast<Image>(ctrl);
-        if (rn->astNode) {
-            if (auto srcAttr = rn->astNode->getAttribute("src")) {
-                try {
-                    if (srcAttr->isString()) {
-                        auto path = srcAttr->as<std::string>();
-                        if (!path.empty()) {
-                            imgCtrl->setSrc(path);
-                            ResourceManager::getInstance().preloadImage(path);
-                        }
-                    }
-                } catch (...) {
-                    LDT_ERROR("TreeSynchronizer::updateControl: failed to update Image src");
-                }
-            }
-        }
-    }
 
     // Input: update text layout after bounds/viewport/scroll are synced
     if (ctrl->getTypeName() == "Input") {

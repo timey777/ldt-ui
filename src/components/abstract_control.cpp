@@ -8,8 +8,41 @@
 #include <engine/update_scheduler.h>
 #include <engine/box_model_engine.h>
 #include "engine/document_runtime.h"
+#include "engine/core/resolved_node.h"
+#include "engine/resource_manager.h"
 
 namespace ldt {
+
+	void AbstractControl::syncFromResolvedNode(const ResolvedNode& rn) {
+		const auto& layout = rn.layout;
+		setBounds(layout.getBorderBox());
+		setScrollSize(layout.scroll.scrollWidth, layout.scroll.scrollHeight);
+		setViewportSize(layout.viewportWidth, layout.viewportHeight);
+		setScroll(layout.scroll.offsetX, layout.scroll.offsetY);
+
+		setFillColor(rn.finalStyle.backgroundColor);
+		setStrokeColor(rn.finalStyle.borderColor);
+		setStrokeWidth(rn.finalStyle.borderWidth);
+		setCornerRadius(rn.finalStyle.borderRadius.toPx());
+
+		// Padding 是基类成员（虚 setter），在通用层统一同步；
+		// Text/Input/Image 等通过 override setPadding 获得额外副作用（如触发重排版）。
+		setPadding(layout.padding.left, layout.padding.top,
+				   layout.padding.right, layout.padding.bottom);
+
+		const bool displayNone = (rn.layoutRules.getDisplay() == ldt::FormattingContext::None);
+		setVisible(rn.finalStyle.visible && !displayNone);
+
+		if (!rn.finalStyle.backgroundImage.empty())
+		{
+			setBackgroundImage(rn.finalStyle.backgroundImage);
+			ResourceManager::getInstance().preloadImage(rn.finalStyle.backgroundImage);
+		}
+
+		// 子类钩子：补充各自特有的布局派生属性（无需子类调用父类实现）
+		OnSyncFromResolvedNode(rn);
+	}
+
 	AbstractControl::AbstractControl() {
 	}
 

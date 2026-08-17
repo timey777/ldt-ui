@@ -3,7 +3,13 @@
 #include "components/scene.h"
 #include "components/control_manager.h"
 #include "engine/ui_event_system.h"
+#include "engine/core/resolved_node.h"
 namespace ldt {
+
+void ComboBox::OnSyncFromResolvedNode(const ResolvedNode& rn) {
+    setTextColor(rn.finalStyle.textColor);
+    setFontSize(rn.finalStyle.fontSize);
+}
 
 ComboBox::ComboBox() {
     trigger_ = std::make_shared<ComboTrigger>(this);

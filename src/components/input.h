@@ -13,6 +13,7 @@
 #include <vector>
 #include <chrono>
 #include "engine/input_events.h"
+#include "engine/core/resolved_node.h"
 #include <limits>
 #include <cmath>
 #include <algorithm>
@@ -245,6 +246,14 @@ public:
         }
     }
     const std::string& getFontFamily() const { return fontFamily_; }
+
+    // 运行时样式变化（hover/active 等）也需要刷新字体属性，不能只在创建时设置。
+    void OnSyncFromResolvedNode(const ResolvedNode& rn) override {
+        setTextColor(rn.finalStyle.textColor);
+        setFontSize(rn.finalStyle.fontSize);
+        setFontFamily(rn.finalStyle.fontFamily);
+        // padding 已在 AbstractControl::syncFromResolvedNode 通用层统一同步
+    }
     
     void setPadding(float left, float top, float right, float bottom) override {
         AbstractControl::setPadding(left, top, right, bottom);

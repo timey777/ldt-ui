@@ -7,6 +7,7 @@
 #include "render/drawer.h"
 #include "scene.h"
 #include "engine/core/node_flags.h"
+#include "misc/float_utils.h"
 #include <cmath>
 
 namespace ldt {
@@ -23,6 +24,10 @@ protected:
     Text() = default;
     explicit Text(const std::string& text) : text_(text) {}
     friend class ControlFactory;
+
+    // 子类钩子：同步布局派生属性（wrap/alignment/layoutWidth/padding）。
+    // 控件在首次布局前创建，创建时这些值还是默认值，必须在布局后刷新。
+    void OnSyncFromResolvedNode(const ResolvedNode& rn) override;
 
     void onRender(DisplayList& displayList, const ui::Rect& clip) const override {
         if (text_.empty()) return;
@@ -72,10 +77,15 @@ protected:
 public:
     std::string getTypeName() const override { return "Text"; }
 
-    // Padding
+    // Padding（值守卫：无变化时不触发文本重排版，避免每次同步都重建布局）
     void setPadding(float left, float top, float right, float bottom) {
-        paddingLeft_ = left; paddingTop_ = top; paddingRight_ = right; paddingBottom_ = bottom;
-        layoutDirty_ = true;
+        if (ldt::floatNotEqual(paddingLeft_, left) ||
+            ldt::floatNotEqual(paddingTop_, top) ||
+            ldt::floatNotEqual(paddingRight_, right) ||
+            ldt::floatNotEqual(paddingBottom_, bottom)) {
+            paddingLeft_ = left; paddingTop_ = top; paddingRight_ = right; paddingBottom_ = bottom;
+            layoutDirty_ = true;
+        }
     }
 
     // 文本相关属性
@@ -176,8 +186,10 @@ public:
     void setTextColor(const ui::Color& color) { textColor_ = color; }
     const ui::Color& getTextColor() const { return textColor_; }
 
-    // 布局宽度（用于对齐，不影响 bounds_）
-    void setLayoutWidth(float width) { layoutWidth_ = width; }
+    // 布局宽度（用于对齐，不影响 bounds_；值守卫，无变化时跳过）
+    void setLayoutWidth(float width) {
+        if (ldt::floatNotEqual(layoutWidth_, width)) layoutWidth_ = width;
+    }
     float getLayoutWidth() const { return layoutWidth_; }
 
 private:
