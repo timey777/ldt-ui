@@ -28,6 +28,7 @@ namespace ldt {
 		// Flex 布局属性
 		FlexDirection flexDirection = FlexDirection::Row;
 		AlignItems alignItems = AlignItems::Stretch;
+		AlignSelf alignSelf = AlignSelf::Auto;
 		JustifyContent justifyContent = JustifyContent::FlexStart;
 		FlexWrap flexWrap = FlexWrap::NoWrap;
 		float flexGrow = 0;

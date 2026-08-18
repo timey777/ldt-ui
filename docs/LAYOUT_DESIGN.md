@@ -61,6 +61,7 @@ Grid 轨道尺寸遵循与 flex 相同的确定性原则：
 2. **剩余空间分配**：容器内容尺寸减去固定轨道与 gap 合计后，剩余空间按 `fr` 值比例分配给 `fr` 轨道；剩余为负时 `fr` 轨道取 0，溢出由容器 overflow 处理。
 3. **容器尺寸未知**：`fr` 和 `%` 轨道无法解析（取 0），容器内在尺寸由 `px`/`auto` 轨道决定——与 flex 的 auto 宽度取内容尺寸一致。
 4. **stretch**：`width`/`height` 为 auto 的项默认拉伸填满单元格（扣除自身 margin/border/padding），语义同 flex 的交叉轴 stretch。
+5. **块轴对齐（align-items / align-self）**：默认 `stretch` 即第 4 条；`center` / `flex-end` / `flex-start` 时子项保留内容高度、在行内对齐（偏移 = 行高 − 子项高，center 取半，负值钳 0）。子项写 `align-self` 可单独覆盖父 `align-items`（`auto`=跟随父）。
 
 ## 滚动容器
 

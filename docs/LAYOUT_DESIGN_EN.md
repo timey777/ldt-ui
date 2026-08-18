@@ -61,6 +61,7 @@ Grid track sizing follows the same deterministic principles as flex:
 2. **Remaining-space allocation**: after subtracting fixed tracks and gaps from the container content size, the remaining space is distributed to `fr` tracks proportionally to their `fr` values; when the remainder is negative, `fr` tracks become 0 and the overflow is handled by the container's overflow.
 3. **Unknown container size**: `fr` and `%` tracks cannot resolve (treated as 0); the container's intrinsic size is decided by `px`/`auto` tracks — consistent with flex auto width being content-driven.
 4. **Stretch**: items with `width`/`height` set to auto stretch to fill their cell (minus their own margin/border/padding), matching flex cross-axis stretch semantics.
+5. **Block-axis alignment (align-items / align-self)**: default `stretch` is item 4 above; with `center` / `flex-end` / `flex-start` items keep their content height and align within the row (offset = row height − item height, half of it for center, clamped at 0). A child's `align-self` overrides the parent `align-items` (`auto` = follow parent).
 
 ## Scroll Containers
 

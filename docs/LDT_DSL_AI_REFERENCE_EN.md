@@ -154,6 +154,7 @@ These can be used in `@layout` blocks or inlined in node attributes.
 | `position` | keyword | `static` | `static` / `relative` / `absolute` / `fixed` |
 | `flex-direction` | keyword | `row` | `row` / `column` / `row-reverse` / `column-reverse` |
 | `align-items` | keyword | `stretch` | `stretch` / `flex-start` / `flex-end` / `center` / `baseline` |
+| `align-self` | keyword | `auto` | Per-child override of parent `align-items`: `auto` / `stretch` / `flex-start` / `flex-end` / `center` / `baseline` |
 | `justify-content` | keyword | `flex-start` | `flex-start` / `flex-end` / `center` / `space-between` / `space-around` / `space-evenly` |
 | `flex-wrap` | keyword | `nowrap` | `nowrap` / `wrap` / `wrap-reverse` |
 | `flex-grow` | float | `0` | Flex grow ratio |
@@ -179,6 +180,7 @@ These can be used in `@layout` blocks or inlined in node attributes.
 | `align-items: center` | ✅ | Cross-axis centering |
 | `align-items: flex-end` | ✅ | Cross-axis end alignment |
 | `align-items: flex-start` | ✅ | Cross-axis start (default fallthrough) |
+| `align-self` | ✅ | Per-child override of parent `align-items` (auto = follow parent) |
 | `gap` | ✅ | Child spacing; participates in wrap and space allocation |
 | Shrink floor | ✅ | Uses only explicit min-size; the default is zero with no content-based implicit floor |
 | Nested remeasure | ✅ | Auto-remeasure descendants after grow/shrink/stretch |
@@ -188,7 +190,6 @@ These can be used in `@layout` blocks or inlined in node attributes.
 | Missing Feature | Impact | Workaround |
 |----------------|--------|------------|
 | **`align-items: baseline`** | Enum exists but no code path; falls back to flex-start | Fixed height + center approximation |
-| **`align-self`** | Cannot override cross-axis alignment per child | Wrap in a container |
 | **`flex-basis`** | No explicit initial main-axis size | Use width/height only |
 | **`flex` shorthand** | Cannot use `flex: 1` | Write `flex-grow` + `flex-shrink` separately |
 | **`order`** | Cannot change visual order | Reorder nodes in source |
@@ -210,6 +211,7 @@ These can be used in `@layout` blocks or inlined in node attributes.
 | Auto placement | ✅ | Row-major cell filling |
 | Implicit rows | ✅ | Auto rows are appended when items exceed the declared rows |
 | Stretch | ✅ | Auto-sized items fill their cell by default (minus own margin/border/padding) |
+| `align-items` / `align-self` | ✅ | Block-axis (vertical) alignment: stretch (default) / center / flex-end / flex-start; per-child `align-self` overrides |
 
 #### fr Allocation Rules
 
@@ -225,7 +227,7 @@ These can be used in `@layout` blocks or inlined in node attributes.
 | `minmax()` | Track min/max sizes not supported |
 | `grid-auto-rows` | Implicit row height is always content-driven |
 | `grid-template-areas` | Named areas not supported |
-| `justify-items` / `align-items` / `justify-content` / `align-content` | Alignment within cells / of the whole grid is not configurable |
+| `justify-items` / `justify-content` / `align-content` | Inline-axis alignment within cells and whole-grid alignment are not configurable (use `align-items` / `align-self` for the block axis) |
 
 ---
 
@@ -236,9 +238,9 @@ Deterministic rules: `width`/`height` are border-box preferred sizes; min-size d
 | Layout Mode | display value | Behavior |
 |------------|---------------|----------|
 | **Block** | `block` (default) | Vertically stacked. Children fill parent width by default; height is content-driven |
-| **Flex** | `flex` | Flexbox layout (non-standard CSS subset). See §7. Does not support baseline/align-self/flex-basis/order/align-content |
+| **Flex** | `flex` | Flexbox layout (non-standard CSS subset). See §7. Does not support baseline/flex-basis/order/align-content (align-self is supported) |
 | **Inline** | `inline` | Horizontal flow layout. Children wrap automatically, similar to text flow |
-| **Grid** | `grid` | Two-dimensional grid layout. Supports px/%/fr/auto tracks, gap, auto-placement, implicit rows, stretch (see §7.3) |
+| **Grid** | `grid` | Two-dimensional grid layout. Supports px/%/fr/auto tracks, gap, auto-placement, implicit rows, stretch, and align-items/align-self block-axis alignment (see §7.3) |
 | **Hidden** | `none` | Excluded from layout and rendering |
 
 Box model (outside → inside): **margin → border → padding → content**
@@ -260,7 +262,7 @@ Containers with `overflow: scroll` or `auto` provide scrollbars and `scrollWidth
 | 5 | vh/vw units | `height: 100vh` | `height: 100%` (parent must have a definite height) |
 | 6 | Flex shorthand | `flex: 1` | `flex-grow: 1; flex-shrink: 1` |
 | 7 | flex-basis | `flex-basis: 200px` | ❌ Not supported; use `width`/`height` instead |
-| 8 | align-self | `align-self: center` | ❌ Not supported; wrap in a container or use align-items on parent |
+| 8 | align-self | `align-self: center` | ✅ Supported; overrides parent `align-items` on flex/grid children (auto = follow parent) |
 | 9 | order | `order: 1` | ❌ Not supported; reorder nodes in source |
 | 10 | align-content | `align-content: space-between` | ❌ Not supported; multi-line simply stacks |
 | 11 | align-items: baseline | `align-items: baseline` | ❌ No effect, falls back to flex-start |

@@ -38,6 +38,21 @@ static std::vector<ldt::ResolvedNode*> flowItems(ldt::ResolvedNode* node) {
     return items;
 }
 
+// 子项有效对齐：align-self（非 auto）覆盖容器 align-items（等价 CSS）
+static ldt::AlignItems gridItemAlign(const IPropertyProvider& parentProp,
+                                     const IPropertyProvider& childProp) {
+    const ldt::AlignSelf as = childProp.getAlignSelf();
+    if (as == ldt::AlignSelf::Auto) return parentProp.getAlignItems();
+    switch (as) {
+        case ldt::AlignSelf::Center:   return ldt::AlignItems::Center;
+        case ldt::AlignSelf::FlexEnd:  return ldt::AlignItems::FlexEnd;
+        case ldt::AlignSelf::FlexStart:return ldt::AlignItems::FlexStart;
+        case ldt::AlignSelf::Baseline: return ldt::AlignItems::Baseline;
+        case ldt::AlignSelf::Stretch:
+        default:                       return ldt::AlignItems::Stretch;
+    }
+}
+
 // 计算轨道布局数据（resolve/position 阶段复用）
 //   containerW/H < 0 表示求内在尺寸（fr/% 轨道无法解析，取 0）
 static GridLayoutData buildGridData(ldt::ResolvedNode* node,
@@ -239,7 +254,10 @@ void GridLayout::resolveGrid(BoxModelEngine* engine, ldt::ResolvedNode* node) {
                                                      child->layout.maxWidth);
                 changed = true;
             }
-            if (childRes.getHeight().isAuto()) {
+            // 垂直拉伸仅在子项有效对齐为 stretch（默认）时进行；center/end 保留内容高度，由 position 阶段做行内偏移。
+            // 子项 align-self（非 auto）覆盖容器 align-items。
+            if (childRes.getHeight().isAuto()
+                && gridItemAlign(node->props(), childRes) == ldt::AlignItems::Stretch) {
                 const float avail = data.rowSizes[r]
                     - child->layout.margin.vertical()
                     - child->layout.border.vertical()
@@ -286,7 +304,19 @@ void GridLayout::positionGrid(BoxModelEngine* engine, ldt::ResolvedNode* node,
         for (int c = 0; c < data.numCols; ++c) {
             const int idx = r * data.numCols + c;
             if (idx >= static_cast<int>(items.size())) break;
-            engine->layoutPhase(items[idx], x, y);
+            // 子项有效对齐（align-self 覆盖父 align-items）：非 stretch 时保留内容高度，在行内做垂直偏移（center/flex-end）
+            float yOffset = 0.0f;
+            const ldt::AlignItems itemAlign = gridItemAlign(*prop, items[idx]->props());
+            if (itemAlign != ldt::AlignItems::Stretch) {
+                const float itemH = items[idx]->layout.getMarginBox().height;
+                if (itemAlign == ldt::AlignItems::Center) {
+                    yOffset = (data.rowSizes[r] - itemH) * 0.5f;
+                } else if (itemAlign == ldt::AlignItems::FlexEnd) {
+                    yOffset = data.rowSizes[r] - itemH;
+                }
+                if (yOffset < 0.0f) yOffset = 0.0f;
+            }
+            engine->layoutPhase(items[idx], x, y + yOffset);
             x += data.colSizes[c] + gap;
         }
         y += data.rowSizes[r] + gap;

@@ -489,7 +489,8 @@ static bool isLayoutProperty(std::string_view name) {
         "display",
         "flex-direction",
         "justify-content",
-        "align-items"
+        "align-items",
+        "align-self"
     };
     return layoutProps.count(std::string(name)) > 0 ||
            name.find("margin-") == 0 || name.find("padding-") == 0 || name.find("border-width-") == 0;

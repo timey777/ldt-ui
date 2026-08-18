@@ -172,6 +172,15 @@ AlignItems alignItemsStringToEnum(const std::string& s) {
     return AlignItems::Stretch;
 }
 
+AlignSelf alignSelfStringToEnum(const std::string& s) {
+    if (s == "auto") return AlignSelf::Auto;
+    if (s == "flex-start") return AlignSelf::FlexStart;
+    if (s == "flex-end") return AlignSelf::FlexEnd;
+    if (s == "center") return AlignSelf::Center;
+    if (s == "baseline") return AlignSelf::Baseline;
+    return AlignSelf::Stretch;
+}
+
 JustifyContent justifyContentStringToEnum(const std::string& s) {
     if (s == "flex-end") return JustifyContent::FlexEnd;
     if (s == "center") return JustifyContent::Center;

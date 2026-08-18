@@ -277,6 +277,7 @@ LDT DSL 支持以下五种单位：
 |------|------|--------|--------|
 | `flex-direction` | 主轴方向 | `row`, `column`, `row-reverse`, `column-reverse` | `row` |
 | `align-items` | 交叉轴对齐 | `stretch`, `flex-start`, `flex-end`, `center`, `baseline` | `stretch` |
+| `align-self` | 子项级交叉轴对齐（覆盖父 `align-items`） | `auto`, `stretch`, `flex-start`, `flex-end`, `center`, `baseline` | `auto` |
 | `justify-content` | 主轴对齐 | `flex-start`, `flex-end`, `center`, `space-between`, `space-around`, `space-evenly` | `flex-start` |
 | `flex-wrap` | 是否换行 | `nowrap`, `wrap`, `wrap-reverse` | `nowrap` |
 | `flex-grow` | 弹性增长比例 | 数值 | `0` |
@@ -291,6 +292,8 @@ LDT DSL 支持以下五种单位：
 |------|------|------|
 | `grid-template-columns` | 列模板 | `grid-template-columns: "1fr 2fr 1fr"` |
 | `grid-template-rows` | 行模板 | `grid-template-rows: "auto 1fr auto"` |
+| `align-items` | 块轴（垂直）对齐 | `align-items: center` |
+| `align-self` | 子项级块轴对齐（覆盖父 `align-items`） | `align-self: flex-end` |
 
 ---
 
@@ -336,6 +339,10 @@ LDT DSL 支持以下五种单位：
 - `flex-end` — 末尾端对齐
 - `center` — 居中对齐
 
+**子项级覆盖（align-self）：**
+- 写在子元素上，覆盖父容器的 `align-items`；`auto`（默认）表示跟随父容器
+- 可选值：`stretch` / `flex-start` / `flex-end` / `center`（`baseline` 无效果）
+
 **弹性伸缩：**
 - `flex-grow`：弹性增长比例。容器有剩余空间时，按 grow 值比例分配给子元素。默认 0（不增长）
 - `flex-shrink`：弹性收缩比例。容器空间不足时，按 shrink 值直接分配收缩量。默认 0（不收缩）
@@ -352,7 +359,6 @@ LDT DSL 支持以下五种单位：
 | 不支持的特性 | 说明 |
 |-------------|------|
 | `align-items: baseline` | 无法按文字基线对齐（枚举值存在但实际无效果） |
-| `align-self` | 无法对单个子元素单独设置交叉轴对齐方式 |
 | `flex-basis` | 无独立的初始主轴尺寸属性，子元素尺寸仅由 `width`/`height` 决定 |
 | `flex` 简写属性 | 不能写 `flex: 1`，需要分别写 `flex-grow` 和 `flex-shrink` |
 | `order` | 无法改变子元素的视觉排列顺序，顺序由源码位置决定 |
@@ -382,6 +388,7 @@ LDT DSL 支持以下五种单位：
 - **自动放置**：子元素从左到右、从上到下填入单元格，占满一列自动换行
 - **隐式行**：子元素数量超过定义行数时自动创建新行，行高按内容
 - **stretch**：`width`/`height` 为 auto 的项默认拉伸填满所在单元格（扣除自身 margin/border/padding）
+- **align-items / align-self**：块轴（垂直）对齐。默认 `stretch`（拉满行高）；`center` / `flex-end` / `flex-start` 时子项保留内容高度并在行内对齐，子项可写 `align-self` 单独覆盖
 - **gap**：统一设置行与列之间的间距，参与剩余空间计算
 
 #### 示例
@@ -408,7 +415,7 @@ panel:grid(class="grid") {
 | `grid-template-areas` | 不支持命名区域 |
 | `minmax()` | 不支持轨道最小/最大尺寸 |
 | `grid-auto-rows` | 隐式行高固定按内容 |
-| `justify-items` / `align-items` / `justify-content` / `align-content` | 单元格内与网格整体对齐不可调，统一 stretch |
+| `justify-items` / `justify-content` / `align-content` | 单元格内水平对齐与网格整体对齐不可调（垂直方向可用 `align-items` / `align-self`） |
 
 ### 8.4 Inline 布局
 

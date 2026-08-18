@@ -277,6 +277,7 @@ When `display` is set to `flex`, the following properties control flex layout be
 |----------|-------------|-----------------|---------|
 | `flex-direction` | Main axis direction | `row`, `column`, `row-reverse`, `column-reverse` | `row` |
 | `align-items` | Cross-axis alignment | `stretch`, `flex-start`, `flex-end`, `center`, `baseline` | `stretch` |
+| `align-self` | Per-child cross-axis alignment (overrides parent `align-items`) | `auto`, `stretch`, `flex-start`, `flex-end`, `center`, `baseline` | `auto` |
 | `justify-content` | Main-axis alignment | `flex-start`, `flex-end`, `center`, `space-between`, `space-around`, `space-evenly` | `flex-start` |
 | `flex-wrap` | Wrapping | `nowrap`, `wrap`, `wrap-reverse` | `nowrap` |
 | `flex-grow` | Flex grow ratio | Number | `0` |
@@ -291,6 +292,8 @@ When `display` is set to `grid`:
 |----------|-------------|---------|
 | `grid-template-columns` | Column template | `grid-template-columns: "1fr 2fr 1fr"` |
 | `grid-template-rows` | Row template | `grid-template-rows: "auto 1fr auto"` |
+| `align-items` | Block-axis (vertical) alignment | `align-items: center` |
+| `align-self` | Per-child block-axis alignment (overrides parent `align-items`) | `align-self: flex-end` |
 
 ---
 
@@ -336,6 +339,10 @@ Suitable for page structure, card lists, and other top-to-bottom arrangements.
 - `flex-end` — Align to end
 - `center` — Center alignment
 
+**Per-Child Override (align-self):**
+- Written on a child; overrides the parent container's `align-items`; `auto` (default) means follow the parent
+- Values: `stretch` / `flex-start` / `flex-end` / `center` (`baseline` has no effect)
+
 **Flex Grow & Shrink:**
 - `flex-grow`: Flex grow ratio. When container has extra space, distributes proportionally. Default 0 (no grow)
 - `flex-shrink`: Flex shrink ratio. When space is insufficient, the deficit is distributed directly by shrink value. Default 0 (no shrink)
@@ -352,7 +359,6 @@ The following Flex features are **not yet implemented**:
 | Unsupported Feature | Notes |
 |--------------------|-------|
 | `align-items: baseline` | Cannot align by text baseline (enum exists but has no effect) |
-| `align-self` | Cannot override cross-axis alignment for individual children |
 | `flex-basis` | No explicit initial main-axis size; child size determined by `width`/`height` only |
 | `flex` shorthand | Cannot write `flex: 1`; use separate `flex-grow` and `flex-shrink` |
 | `order` | Cannot change visual order of children; order follows source position |
@@ -380,6 +386,7 @@ When `grid-template-rows` is omitted, row heights are content-driven.
 - **Auto placement**: children fill cells left-to-right, top-to-bottom, wrapping to a new row when a column fills up
 - **Implicit rows**: extra children beyond the declared rows create new rows automatically, sized by content
 - **Stretch**: items with `width`/`height` set to auto stretch to fill their cell (minus their own margin/border/padding)
+- **align-items / align-self**: block-axis (vertical) alignment. Default `stretch` (fills the row height); with `center` / `flex-end` / `flex-start` items keep their content height and align within the row; a child may write `align-self` to override individually
 - **gap**: uniform row/column spacing; participates in remaining-space calculation
 
 #### Example
@@ -406,7 +413,7 @@ panel:grid(class="grid") {
 | `grid-template-areas` | Named areas not supported |
 | `minmax()` | Track min/max sizes not supported |
 | `grid-auto-rows` | Implicit row height is always content-driven |
-| `justify-items` / `align-items` / `justify-content` / `align-content` | Alignment within cells / of the whole grid is not configurable; uniform stretch |
+| `justify-items` / `justify-content` / `align-content` | Inline-axis alignment within cells and whole-grid alignment are not configurable (use `align-items` / `align-self` for the block axis) |
 
 ### 8.4 Inline Layout
 

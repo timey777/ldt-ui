@@ -65,6 +65,10 @@ void applyLayoutProperty(ldt::CompiledLayoutRules& out, const std::string& key, 
             out.alignItems = ldt::alignItemsStringToEnum(*value);
             return;
         }
+        if (key == "align-self") {
+            out.alignSelf = ldt::alignSelfStringToEnum(*value);
+            return;
+        }
         if (key == "justify-content") {
             out.justifyContent = ldt::justifyContentStringToEnum(*value);
             return;
@@ -106,6 +110,7 @@ bool isLayoutCompileProperty(const std::string& key) {
            key == "position" ||
            key == "flex-direction" ||
            key == "align-items" ||
+           key == "align-self" ||
            key == "justify-content" ||
            key == "flex-wrap" ||
            key == "flex-grow" ||

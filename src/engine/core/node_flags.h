@@ -73,6 +73,7 @@ bool tryParseEdgeLengthShorthand(const std::string& s, ui::Edges& out,
 
 enum class FlexDirection : uint8_t { Row, Column, RowReverse, ColumnReverse };
 enum class AlignItems : uint8_t { Stretch, FlexStart, FlexEnd, Center, Baseline };
+enum class AlignSelf : uint8_t { Auto, Stretch, FlexStart, FlexEnd, Center, Baseline };
 enum class JustifyContent : uint8_t { FlexStart, FlexEnd, Center, SpaceBetween, SpaceAround, SpaceEvenly };
 enum class FlexWrap : uint8_t { NoWrap, Wrap, WrapReverse };
 enum class Overflow : uint8_t { Visible, Hidden, Scroll, Auto };
@@ -105,6 +106,7 @@ FormattingContext displayStringToEnum(const std::string& d);
 Position positionStringToEnum(const std::string& s);
 FlexDirection flexDirectionStringToEnum(const std::string& s);
 AlignItems alignItemsStringToEnum(const std::string& s);
+AlignSelf alignSelfStringToEnum(const std::string& s);
 JustifyContent justifyContentStringToEnum(const std::string& s);
 FlexWrap flexWrapStringToEnum(const std::string& s);
 

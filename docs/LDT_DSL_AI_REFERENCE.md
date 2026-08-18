@@ -154,6 +154,7 @@ type(attr) { child1, child2, child3(id="x") }
 | `position` | keyword | `static` | `static` / `relative` / `absolute` / `fixed` |
 | `flex-direction` | keyword | `row` | `row` / `column` / `row-reverse` / `column-reverse` |
 | `align-items` | keyword | `stretch` | `stretch` / `flex-start` / `flex-end` / `center` / `baseline` |
+| `align-self` | keyword | `auto` | 子项级覆盖父 `align-items`：`auto` / `stretch` / `flex-start` / `flex-end` / `center` / `baseline` |
 | `justify-content` | keyword | `flex-start` | `flex-start` / `flex-end` / `center` / `space-between` / `space-around` / `space-evenly` |
 | `flex-wrap` | keyword | `nowrap` | `nowrap` / `wrap` / `wrap-reverse` |
 | `flex-grow` | float | `0` | 弹性增长比例 |
@@ -179,6 +180,7 @@ type(attr) { child1, child2, child3(id="x") }
 | `align-items: center` | ✅ | 交叉轴居中 |
 | `align-items: flex-end` | ✅ | 交叉轴末尾对齐 |
 | `align-items: flex-start` | ✅ | 交叉轴起始（默认 fallthrough） |
+| `align-self` | ✅ | 子项级覆盖父 `align-items`（auto=跟随父） |
 | `gap` | ✅ | 子元素间距，参与换行和空间分配 |
 | 收缩下限 | ✅ | 只使用显式 min-size；未设置时为 0，不计算 content-based 隐式下限 |
 | 嵌套 remeasure | ✅ | grow/shrink/stretch 后自动重新测量后代 |
@@ -188,7 +190,6 @@ type(attr) { child1, child2, child3(id="x") }
 | 缺失特性 | 影响 | 替代方案 |
 |----------|------|---------|
 | **`align-items: baseline`** | 枚举存在但无代码路径，退化为 flex-start | 固定高度 + center 近似 |
-| **`align-self`** | 无法单元素覆盖交叉轴对齐 | 包一层容器 |
 | **`flex-basis`** | 无显式初始主轴尺寸 | 仅用 width/height 控制 |
 | **`flex` 简写** | 不能 `flex: 1` | 分别写 `flex-grow` + `flex-shrink` |
 | **`order`** | 无法改变视觉顺序 | 调整源码节点顺序 |
@@ -210,6 +211,7 @@ type(attr) { child1, child2, child3(id="x") }
 | 自动放置 | ✅ | 行优先（row-major）填充单元格 |
 | 隐式行 | ✅ | 项超出行数自动补 auto 行 |
 | stretch | ✅ | auto 尺寸项默认填满单元格（扣除自身 margin/border/padding） |
+| `align-items` / `align-self` | ✅ | 块轴（垂直）对齐：stretch（默认）/ center / flex-end / flex-start；子项可用 `align-self` 覆盖 |
 
 #### fr 分配规则
 
@@ -225,7 +227,7 @@ type(attr) { child1, child2, child3(id="x") }
 | `minmax()` | 无法约束轨道最小/最大尺寸 |
 | `grid-auto-rows` | 隐式行高固定为内容 |
 | `grid-template-areas` | 无命名区域 |
-| `justify-items` / `align-items` / `justify-content` / `align-content` | 单元格内与网格整体对齐不可调 |
+| `justify-items` / `justify-content` / `align-content` | 单元格内水平对齐与网格整体对齐不可调（垂直方向可用 `align-items` / `align-self`） |
 
 ---
 
@@ -236,9 +238,9 @@ type(attr) { child1, child2, child3(id="x") }
 | 布局模式 | display 值 | 行为 |
 |---------|-----------|------|
 | **Block** | `block`（默认） | 垂直堆叠。子元素宽度默认撑满父容器，高度由内容决定 |
-| **Flex** | `flex` | 弹性布局（非标准 CSS Flexbox 子集）。详见第 7 节。不支持 baseline/align-self/flex-basis/order/align-content |
+| **Flex** | `flex` | 弹性布局（非标准 CSS Flexbox 子集）。详见第 7 节。不支持 baseline/flex-basis/order/align-content（align-self 已支持） |
 | **Inline** | `inline` | 水平流式排列。子元素自动换行，类似文字流 |
-| **Grid** | `grid` | 二维网格布局。支持 px/%/fr/auto 轨道、gap、自动放置、隐式行、stretch（详见 7.3 节） |
+| **Grid** | `grid` | 二维网格布局。支持 px/%/fr/auto 轨道、gap、自动放置、隐式行、stretch、align-items/align-self 块轴对齐（详见 7.3 节） |
 | **隐藏** | `none` | 不参与布局和渲染 |
 
 盒模型（由外向内）：**margin → border → padding → content**
@@ -260,7 +262,7 @@ type(attr) { child1, child2, child3(id="x") }
 | 5 | vh/vw 单位 | `height: 100vh` | `height: 100%`（需父容器有明确高度） |
 | 6 | flex 简写 | `flex: 1` | `flex-grow: 1; flex-shrink: 1` |
 | 7 | flex-basis | `flex-basis: 200px` | ❌ 不支持；用 `width`/`height` 代替 |
-| 8 | align-self | `align-self: center` | ❌ 不支持；包一层容器或统一用 align-items |
+| 8 | align-self | `align-self: center` | ✅ 支持；flex/grid 子项上覆盖父 `align-items`（auto=跟随父） |
 | 9 | order | `order: 1` | ❌ 不支持；调整节点源码顺序 |
 | 10 | align-content | `align-content: space-between` | ❌ 不支持；多行仅简单堆叠 |
 | 11 | align-items: baseline | `align-items: baseline` | ❌ 无效果，退化为 flex-start |

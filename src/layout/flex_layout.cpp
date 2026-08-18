@@ -17,6 +17,21 @@ static float clampf_flex(float v, float lo, float hi) {
     return v;
 }
 
+// 子项有效对齐：align-self（非 auto）覆盖容器 align-items（等价 CSS）
+static ldt::AlignItems itemAlignItems(const IPropertyProvider& parentProp,
+                                      const IPropertyProvider& childProp) {
+    const ldt::AlignSelf as = childProp.getAlignSelf();
+    if (as == ldt::AlignSelf::Auto) return parentProp.getAlignItems();
+    switch (as) {
+        case ldt::AlignSelf::Center:   return ldt::AlignItems::Center;
+        case ldt::AlignSelf::FlexEnd:  return ldt::AlignItems::FlexEnd;
+        case ldt::AlignSelf::FlexStart:return ldt::AlignItems::FlexStart;
+        case ldt::AlignSelf::Baseline: return ldt::AlignItems::Baseline;
+        case ldt::AlignSelf::Stretch:
+        default:                       return ldt::AlignItems::Stretch;
+    }
+}
+
 bool FlexLayout::isRowDirection(ldt::FlexDirection flexDirection) {
     return flexDirection == ldt::FlexDirection::Row || flexDirection == ldt::FlexDirection::RowReverse;
 }
@@ -266,15 +281,14 @@ void FlexLayout::resolveFlex(BoxModelEngine* engine, ldt::ResolvedNode* node) {
         }
 
         // ── 交叉轴解析：单行 line cross = 容器交叉尺寸（父级已解析/确定），stretch 定子项交叉尺寸 ──
-        ldt::AlignItems alignItems = prop->getAlignItems();
-
         float lineCrossSize = (lines.size() == 1) ? containerCross : line.crossSize;
 
         for (size_t i = 0; i < line.childIndices.size(); ++i) {
             size_t idx = line.childIndices[i];
             auto& child = node->getFlowChildren()[idx];
 
-            if (alignItems == ldt::AlignItems::Stretch) {
+            // 子项有效对齐：align-self（非 auto）覆盖容器 align-items；仅 stretch 拉伸交叉轴
+            if (itemAlignItems(*prop, child->props()) == ldt::AlignItems::Stretch) {
                 const IPropertyProvider& childRes = child->props();
                 if (isRow) {
                     if (childRes.getDisplay() != ldt::FormattingContext::Inline && childRes.getHeight().isAuto()) {
@@ -372,7 +386,6 @@ void FlexLayout::positionFlex(BoxModelEngine* engine, ldt::ResolvedNode* node,
         }
 
         float currentMainPos = startOffset;
-        ldt::AlignItems alignItems = prop->getAlignItems();
 
         // line cross（与 resolve 一致）：单行 = 容器交叉尺寸
         float lineCrossSize = (lines.size() == 1) ? containerCross : line.crossSize;
@@ -384,10 +397,11 @@ void FlexLayout::positionFlex(BoxModelEngine* engine, ldt::ResolvedNode* node,
             float childCross = getCrossSize(child, isRow);
             
             float alignOffset = 0;
-            
-            if (alignItems == ldt::AlignItems::Center) {
+            // 子项有效对齐：align-self（非 auto）覆盖容器 align-items
+            const ldt::AlignItems itemAlign = itemAlignItems(*prop, child->props());
+            if (itemAlign == ldt::AlignItems::Center) {
                 alignOffset = (lineCrossSize - childCross) / 2.0f;
-            } else if (alignItems == ldt::AlignItems::FlexEnd) {
+            } else if (itemAlign == ldt::AlignItems::FlexEnd) {
                 alignOffset = lineCrossSize - childCross;
             }
             

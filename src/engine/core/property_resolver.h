@@ -50,6 +50,7 @@ public:
     // Flex 布局 (目前大都存储在 layoutRules)
     FlexDirection getFlexDirection() const override { return node->layoutRules.flexDirection; }
     AlignItems getAlignItems() const override { return node->layoutRules.alignItems; }
+    AlignSelf getAlignSelf() const override { return node->layoutRules.alignSelf; }
     JustifyContent getJustifyContent() const override { return node->layoutRules.justifyContent; }
     FlexWrap getFlexWrap() const override { return node->layoutRules.flexWrap; }
     float getFlexGrow() const override { return node->layoutRules.flexGrow; }

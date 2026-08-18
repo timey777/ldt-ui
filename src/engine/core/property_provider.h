@@ -50,6 +50,7 @@ namespace ldt {
         // --- Flex 布局属性 ---
         virtual FlexDirection getFlexDirection() const = 0;
         virtual AlignItems getAlignItems() const = 0;
+        virtual AlignSelf getAlignSelf() const = 0;
         virtual JustifyContent getJustifyContent() const = 0;
         virtual FlexWrap getFlexWrap() const = 0;
         virtual float getFlexGrow() const = 0;
