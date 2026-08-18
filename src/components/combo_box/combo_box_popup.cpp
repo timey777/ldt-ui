@@ -10,8 +10,13 @@ void ComboBoxPopup::onRender(DisplayList& displayList, const ui::Rect& clip) con
     if (owner_) {
         const_cast<ComboBox*>(owner_)->updatePopupBounds();
     }
+    // 背景（含描边）画在底层
     displayList.addRect(bounds_, fillColor_, strokeColor_, strokeWidth_, cornerRadius_);
     renderChildren(displayList, clip);
+    // 子项背景是不透明矩形，会盖住底层描边；顶层再描一次边框（透明填充，只画描边），保证边框可见
+    if (strokeWidth_.any() && strokeColor_.a > 0.0f) {
+        displayList.addRect(bounds_, ui::Color(0, 0, 0, 0), strokeColor_, strokeWidth_, cornerRadius_);
+    }
 }
 
 bool ComboBoxPopup::handleLocalMouseMove(ControlLocalPointDp point) {

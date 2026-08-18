@@ -740,6 +740,11 @@ void StyleEngine::loadDefaultStyles() {
         {"border-color", Attribute("#003f7f")}
         });
 
+    addDefaultStyleRule("combobox", {
+        {"border-width", Attribute(1)},
+        {"border-color", Attribute("#555555")}
+        });
+
     // 输入框 focus/hover
     //addDefaultStyleRule("input:hover", {
     //    {"background-color", Attribute("#f8f9fa")}

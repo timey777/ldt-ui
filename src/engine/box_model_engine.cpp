@@ -225,6 +225,44 @@ void BoxModelEngine::measureContent(ldt::ResolvedNode* node, float& requestedW, 
 			}
 		}
 	}
+	else if (node->astNode->type == "combobox") {
+		// ComboBox 没有 AST flow children（trigger/popup 是运行时 addChild 的），
+		// 必须在这里提供内在尺寸，否则 auto 宽高会塌缩成 0。
+		ITextMeasurer* textMeasureer = nullptr;
+		if (getContext()) textMeasureer = getContext()->getTextMeasurer();
+		if (!textMeasureer) return;
+
+		// 以最长的一项作为宽度基准（trigger 显示选中项，宽度需能容纳最长项）
+		std::string text;
+		if (auto attr = node->astNode->getAttribute("options")) {
+			std::stringstream ss(attr->as<std::string>());
+			std::string item;
+			while (std::getline(ss, item, ',')) {
+				if (item.size() > text.size()) text = item;
+			}
+		}
+		if (text.empty()) text = "select a item"; // 与 ComboTrigger 的空文本占位一致
+
+		Font font;
+		font.family = prop->getFontFamily();
+		font.size = prop->getFontSize() > 0.0f ? prop->getFontSize() : 14.0f;
+		font.bold = (prop->getFontWeight() == ldt::FontWeight::Bold || prop->getFontWeight() == ldt::FontWeight::W700);
+		font.italic = (prop->getFontStyle() == ldt::FontStyle::Italic || prop->getFontStyle() == ldt::FontStyle::Oblique);
+
+		auto cached = textMeasureCache_.get(text, font.family, font.size, font.bold, -1.0f, textMeasureer);
+		float textW = cached.intrinsicWidth;
+		float textH = cached.lineHeight > 0.0f ? cached.lineHeight : (cached.ascent + cached.descent);
+
+		// 对齐 ComboTrigger 绘制：左侧文字留白 8，右侧箭头区 24
+		constexpr float kLeftPad = 8.0f;
+		constexpr float kArrowSpace = 24.0f;
+		if (requestedW == ldt::AUTO_SENTINEL) {
+			requestedW = textW + kLeftPad + kArrowSpace;
+		}
+		if (requestedH == ldt::AUTO_SENTINEL) {
+			requestedH = textH;
+		}
+	}
 }
 
 static void convertBorderBoxToContentSize(

@@ -39,6 +39,8 @@ ldt_test_runner
 | 测试 | 验证内容 |
 |------|---------|
 | `ui/input_multiline_wrap` | 多行输入框文本根据宽度换行（height > 单行） |
+| `ui/combobox_auto_size_from_longest_option` | combobox auto 尺寸按最长 option + 箭头区计算，不塌缩为 0 |
+| `ui/combobox_explicit_size_wins_over_intrinsic` | 显式 width/height 优先于内在尺寸 |
 
 ---
 
